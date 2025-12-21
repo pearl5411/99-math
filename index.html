@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport"
  content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>99乘法考試（嚴格版）</title>
+<title>99乘法考試</title>
 
 <style>
 html,body{
  margin:0;padding:0;
  font-family:"Arial Rounded MT Bold","Arial",sans-serif;
- background:linear-gradient(#fdecea,#ffffff);
+ background:linear-gradient(#e3f2fd,#ffffff);
  touch-action:manipulation;
  user-select:none;
 }
@@ -20,20 +20,20 @@ html,body{
  padding:20px;
  text-align:center;
 }
-h1{color:#d32f2f;}
-#status{font-size:18px;color:#555;}
-#timer{font-size:22px;color:#d32f2f;font-weight:bold;}
+h1{color:#1976d2;}
+#status{font-size:20px;color:#555;}
+#timer{font-size:24px;color:#e53935;font-weight:bold;}
 #question{
  font-size:34px;
- background:#fff3e0;
+ background:#fff9c4;
  padding:15px;
  border-radius:20px;
  margin:15px 0;
 }
-#answerReveal{
+#reveal{
  display:none;
  font-size:32px;
- color:#d32f2f;
+ color:red;
  font-weight:bold;
  margin:10px 0;
 }
@@ -43,8 +43,8 @@ h1{color:#d32f2f;}
  font-size:30px;
  text-align:center;
  border-radius:15px;
- border:3px solid #ef9a9a;
- background:#ffebee;
+ border:3px solid #90caf9;
+ background:#e3f2fd;
 }
 .keypad{
  display:grid;
@@ -57,16 +57,16 @@ h1{color:#d32f2f;}
  padding:20px;
  border-radius:20px;
  border:none;
- background:#ef5350;
+ background:#64b5f6;
  color:white;
 }
 button.control{
  margin-top:18px;
  padding:12px 30px;
- font-size:20px;
+ font-size:22px;
  border-radius:20px;
  border:none;
- background:#c62828;
+ background:#f48fb1;
  color:white;
 }
 </style>
@@ -74,12 +74,12 @@ button.control{
 
 <body>
 <div class="container">
-<h1>99乘法考試（嚴格版）</h1>
+<h1>99乘法考試</h1>
 
 <div id="status">尚未開始</div>
 <div id="timer">時間：8</div>
 <div id="question">請按開始</div>
-<div id="answerReveal"></div>
+<div id="reveal"></div>
 <input id="input" readonly>
 
 <div class="keypad">
@@ -102,7 +102,7 @@ function speak(t){
  speechSynthesis.speak(u);
 }
 
-/* ===== 音效 ===== */
+/* ===== 音效（iPhone 解鎖關鍵）===== */
 let audioCtx;
 function unlockAudio(){
  if(!audioCtx){
@@ -111,31 +111,70 @@ function unlockAudio(){
  if(audioCtx.state==="suspended") audioCtx.resume();
 }
 
+/* 開始時強制播放「無聲音」→ iPhone 允許之後播放 */
+function unlockIOSAudio(){
+ unlockAudio();
+ const o=audioCtx.createOscillator();
+ const g=audioCtx.createGain();
+ g.gain.value=0;
+ o.connect(g).connect(audioCtx.destination);
+ o.start();
+ o.stop(audioCtx.currentTime+0.02);
+}
+
+/* 答對叮咚 */
+function ding(){
+ unlockAudio();
+ const now=audioCtx.currentTime;
+ for(let i=0;i<2;i++){
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.type="sine";
+  o.frequency.value=800+i*300;
+  g.gain.value=0.15;
+  o.connect(g).connect(audioCtx.destination);
+  o.start(now+i*0.15);
+  o.stop(now+i*0.15+0.12);
+ }
+}
+
+/* 計時滴聲 */
+function tickSound(urgent=false){
+ unlockAudio();
+ const o=audioCtx.createOscillator();
+ const g=audioCtx.createGain();
+ o.type="square";
+ o.frequency.value=urgent?1200:600;
+ g.gain.value=urgent?0.08:0.04;
+ o.connect(g).connect(audioCtx.destination);
+ o.start();
+ o.stop(audioCtx.currentTime+0.05);
+}
+
 /* ===== 遊戲資料 ===== */
 const TOTAL=30, LIMIT=8;
 let q=0,a=0,b=0,ans=0,time=0,timer;
 let playing=false;
 let correct=0;
 let wrongCount={};
-let questionStartTime=0;
 let correctTimes=[];
+let questionStart=0;
 
 const startBtn=document.getElementById("startBtn");
-const reveal=document.getElementById("answerReveal");
+const reveal=document.getElementById("reveal");
 
-/* 開始 / 重新測驗 */
+/* 開始 */
 startBtn.onclick=()=>{
  if(playing) return;
- unlockAudio();
+ unlockIOSAudio(); // ⭐ iPhone 聲音關鍵
  start();
 };
 
 function start(){
  q=0; correct=0; wrongCount={}; correctTimes=[];
- reveal.style.display="none";
  playing=true;
- startBtn.textContent="測驗中";
  startBtn.disabled=true;
+ startBtn.textContent="測驗中";
  next();
 }
 
@@ -158,15 +197,13 @@ function next(){
  b=Math.floor(Math.random()*9)+1;
  ans=a*b;
  document.getElementById("question").textContent=`${a} × ${b} = ?`;
-
- questionStartTime=Date.now();
+ questionStart=Date.now();
 
  timer=setInterval(()=>{
   time--;
   document.getElementById("timer").textContent=`時間：${time}`;
-  if(time<=0){
-   recordWrong();
-  }
+  if(time>0) tickSound(time<=3);
+  if(time<=0) recordWrong();
  },1000);
 }
 
@@ -188,9 +225,9 @@ function press(n){
  input.value+=n;
 
  if(+input.value===ans){
+  ding();
   correct++;
-  const spend=(Date.now()-questionStartTime)/1000;
-  correctTimes.push(spend);
+  correctTimes.push((Date.now()-questionStart)/1000);
   next();
  }else if(input.value.length>=ans.toString().length){
   recordWrong();
@@ -227,8 +264,8 @@ function end(){
 
  alert(
   `📊 成績總結\n\n`+
-  `✔ 答對：${correct} / ${TOTAL}\n`+
-  `⏱ 平均答對時間：${avg} 秒\n`+
+  `✔ 答對：${correct} / ${TOTAL}\n\n`+
+  `⏱ 平均答對時間：${avg} 秒\n\n`+
   `❌ 錯最多的乘法：${worst}`
  );
 }
