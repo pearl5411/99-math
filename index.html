@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+ content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>99乘法考試（嚴格版）</title>
+
+<style>
+html,body{
+ margin:0;padding:0;
+ font-family:"Arial Rounded MT Bold","Arial",sans-serif;
+ background:linear-gradient(#fdecea,#ffffff);
+ touch-action:manipulation;
+ user-select:none;
+}
+.container{
+ max-width:420px;
+ margin:auto;
+ padding:20px;
+ text-align:center;
+}
+h1{color:#d32f2f;}
+#status{font-size:18px;color:#555;}
+#timer{font-size:22px;color:#d32f2f;font-weight:bold;}
+#question{
+ font-size:34px;
+ background:#fff3e0;
+ padding:15px;
+ border-radius:20px;
+ margin:15px 0;
+}
+#answerReveal{
+ display:none;
+ font-size:32px;
+ color:#d32f2f;
+ font-weight:bold;
+ margin:10px 0;
+}
+#input{
+ width:100%;
+ height:55px;
+ font-size:30px;
+ text-align:center;
+ border-radius:15px;
+ border:3px solid #ef9a9a;
+ background:#ffebee;
+}
+.keypad{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:12px;
+ margin-top:15px;
+}
+.keypad button{
+ font-size:26px;
+ padding:20px;
+ border-radius:20px;
+ border:none;
+ background:#ef5350;
+ color:white;
+}
+button.control{
+ margin-top:18px;
+ padding:12px 30px;
+ font-size:20px;
+ border-radius:20px;
+ border:none;
+ background:#c62828;
+ color:white;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>99乘法考試（嚴格版）</h1>
+
+<div id="status">尚未開始</div>
+<div id="timer">時間：8</div>
+<div id="question">請按開始</div>
+<div id="answerReveal"></div>
+<input id="input" readonly>
+
+<div class="keypad">
+<button>1</button><button>2</button><button>3</button>
+<button>4</button><button>5</button><button>6</button>
+<button>7</button><button>8</button><button>9</button>
+<button>0</button><button>清除</button>
+</div>
+
+<button class="control" id="startBtn">開始測驗</button>
+</div>
+
+<script>
+/* ===== 語音 ===== */
+function speak(t){
+ speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(t);
+ u.lang="zh-TW";
+ u.rate=0.9;
+ speechSynthesis.speak(u);
+}
+
+/* ===== 音效 ===== */
+let audioCtx;
+function unlockAudio(){
+ if(!audioCtx){
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+ }
+ if(audioCtx.state==="suspended") audioCtx.resume();
+}
+
+/* ===== 遊戲資料 ===== */
+const TOTAL=30, LIMIT=8;
+let q=0,a=0,b=0,ans=0,time=0,timer;
+let playing=false;
+let correct=0;
+let wrongCount={};
+let questionStartTime=0;
+let correctTimes=[];
+
+const startBtn=document.getElementById("startBtn");
+const reveal=document.getElementById("answerReveal");
+
+/* 開始 / 重新測驗 */
+startBtn.onclick=()=>{
+ if(playing) return;
+ unlockAudio();
+ start();
+};
+
+function start(){
+ q=0; correct=0; wrongCount={}; correctTimes=[];
+ reveal.style.display="none";
+ playing=true;
+ startBtn.textContent="測驗中";
+ startBtn.disabled=true;
+ next();
+}
+
+function next(){
+ clearInterval(timer);
+ reveal.style.display="none";
+
+ if(q>=TOTAL){
+  end();
+  return;
+ }
+
+ q++;
+ time=LIMIT;
+ document.getElementById("status").textContent=`第 ${q} / ${TOTAL} 題`;
+ document.getElementById("timer").textContent=`時間：${time}`;
+ document.getElementById("input").value="";
+
+ a=Math.floor(Math.random()*9)+1;
+ b=Math.floor(Math.random()*9)+1;
+ ans=a*b;
+ document.getElementById("question").textContent=`${a} × ${b} = ?`;
+
+ questionStartTime=Date.now();
+
+ timer=setInterval(()=>{
+  time--;
+  document.getElementById("timer").textContent=`時間：${time}`;
+  if(time<=0){
+   recordWrong();
+  }
+ },1000);
+}
+
+/* 鍵盤 */
+document.querySelectorAll(".keypad button").forEach(btn=>{
+ btn.onclick=()=>{
+  if(!playing) return;
+  unlockAudio();
+  if(btn.textContent==="清除"){
+   document.getElementById("input").value="";
+   return;
+  }
+  press(btn.textContent);
+ };
+});
+
+function press(n){
+ const input=document.getElementById("input");
+ input.value+=n;
+
+ if(+input.value===ans){
+  correct++;
+  const spend=(Date.now()-questionStartTime)/1000;
+  correctTimes.push(spend);
+  next();
+ }else if(input.value.length>=ans.toString().length){
+  recordWrong();
+ }
+}
+
+function recordWrong(){
+ clearInterval(timer);
+ speak("答錯了");
+
+ const key=`${a}×${b}`;
+ wrongCount[key]=(wrongCount[key]||0)+1;
+
+ reveal.textContent=`正確答案：${a} × ${b} = ${ans}`;
+ reveal.style.display="block";
+
+ setTimeout(next,1200);
+}
+
+function end(){
+ playing=false;
+ startBtn.disabled=false;
+ startBtn.textContent="重新測驗";
+ speak("恭喜你完成測驗");
+
+ let worst="無",max=0;
+ for(let k in wrongCount){
+  if(wrongCount[k]>max){max=wrongCount[k];worst=k;}
+ }
+
+ const avg = correctTimes.length
+  ? (correctTimes.reduce((a,b)=>a+b,0)/correctTimes.length).toFixed(1)
+  : 0;
+
+ alert(
+  `📊 成績總結\n\n`+
+  `✔ 答對：${correct} / ${TOTAL}\n`+
+  `⏱ 平均答對時間：${avg} 秒\n`+
+  `❌ 錯最多的乘法：${worst}`
+ );
+}
+</script>
+</body>
+</html>
