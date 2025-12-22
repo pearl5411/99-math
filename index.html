@@ -69,6 +69,41 @@ button.control{
  background:#f48fb1;
  color:white;
 }
+
+/* 成績彈窗 */
+#overlay{
+ display:none;
+ position:fixed;
+ top:0;left:0;right:0;bottom:0;
+ background:rgba(0,0,0,0.4);
+ z-index:10;
+}
+#resultBox{
+ background:white;
+ width:85%;
+ max-width:360px;
+ margin:120px auto;
+ padding:20px;
+ border-radius:20px;
+ text-align:center;
+}
+#resultBox h2{font-size:26px;margin-top:0;}
+#resultBox p{font-size:20px;}
+#resultBox button{
+ margin:10px;
+ padding:10px 18px;
+ font-size:18px;
+ border:none;
+ border-radius:15px;
+ background:#64b5f6;
+ color:white;
+}
+#wrongList{
+ display:none;
+ text-align:left;
+ font-size:18px;
+ margin-top:10px;
+}
 </style>
 </head>
 
@@ -92,6 +127,16 @@ button.control{
 <button class="control" id="startBtn">開始測驗</button>
 </div>
 
+<div id="overlay">
+ <div id="resultBox">
+  <h2>📊 成績總結</h2>
+  <p id="summaryText"></p>
+  <button onclick="toggleWrong()">查看錯誤的乘法明細</button>
+  <button onclick="closeResult()">關閉</button>
+  <div id="wrongList"></div>
+ </div>
+</div>
+
 <script>
 /* ===== 語音 ===== */
 function speak(t){
@@ -102,7 +147,7 @@ function speak(t){
  speechSynthesis.speak(u);
 }
 
-/* ===== 音效（iPhone 解鎖關鍵）===== */
+/* ===== iOS 音效解鎖 ===== */
 let audioCtx;
 function unlockAudio(){
  if(!audioCtx){
@@ -110,8 +155,6 @@ function unlockAudio(){
  }
  if(audioCtx.state==="suspended") audioCtx.resume();
 }
-
-/* 開始時強制播放「無聲音」→ iPhone 允許之後播放 */
 function unlockIOSAudio(){
  unlockAudio();
  const o=audioCtx.createOscillator();
@@ -121,15 +164,12 @@ function unlockIOSAudio(){
  o.start();
  o.stop(audioCtx.currentTime+0.02);
 }
-
-/* 答對叮咚 */
 function ding(){
  unlockAudio();
  const now=audioCtx.currentTime;
  for(let i=0;i<2;i++){
   const o=audioCtx.createOscillator();
   const g=audioCtx.createGain();
-  o.type="sine";
   o.frequency.value=800+i*300;
   g.gain.value=0.15;
   o.connect(g).connect(audioCtx.destination);
@@ -137,13 +177,10 @@ function ding(){
   o.stop(now+i*0.15+0.12);
  }
 }
-
-/* 計時滴聲 */
 function tickSound(urgent=false){
  unlockAudio();
  const o=audioCtx.createOscillator();
  const g=audioCtx.createGain();
- o.type="square";
  o.frequency.value=urgent?1200:600;
  g.gain.value=urgent?0.08:0.04;
  o.connect(g).connect(audioCtx.destination);
@@ -151,27 +188,26 @@ function tickSound(urgent=false){
  o.stop(audioCtx.currentTime+0.05);
 }
 
-/* ===== 遊戲資料 ===== */
+/* ===== 遊戲 ===== */
 const TOTAL=30, LIMIT=8;
 let q=0,a=0,b=0,ans=0,time=0,timer;
 let playing=false;
 let correct=0;
-let wrongCount={};
 let correctTimes=[];
+let wrongRecords=[];
 let questionStart=0;
 
 const startBtn=document.getElementById("startBtn");
 const reveal=document.getElementById("reveal");
 
-/* 開始 */
 startBtn.onclick=()=>{
  if(playing) return;
- unlockIOSAudio(); // ⭐ iPhone 聲音關鍵
+ unlockIOSAudio();
  start();
 };
 
 function start(){
- q=0; correct=0; wrongCount={}; correctTimes=[];
+ q=0; correct=0; correctTimes=[]; wrongRecords=[];
  playing=true;
  startBtn.disabled=true;
  startBtn.textContent="測驗中";
@@ -207,7 +243,6 @@ function next(){
  },1000);
 }
 
-/* 鍵盤 */
 document.querySelectorAll(".keypad button").forEach(btn=>{
  btn.onclick=()=>{
   if(!playing) return;
@@ -238,13 +273,12 @@ function recordWrong(){
  clearInterval(timer);
  speak("答錯了");
 
- const key=`${a}×${b}`;
- wrongCount[key]=(wrongCount[key]||0)+1;
+ wrongRecords.push(`${a} × ${b} = ${ans}`);
 
  reveal.textContent=`正確答案：${a} × ${b} = ${ans}`;
  reveal.style.display="block";
 
- setTimeout(next,1200);
+ setTimeout(next,3200); // ⭐ 錯誤顯示 3.2 秒
 }
 
 function end(){
@@ -253,21 +287,29 @@ function end(){
  startBtn.textContent="重新測驗";
  speak("恭喜你完成測驗");
 
- let worst="無",max=0;
- for(let k in wrongCount){
-  if(wrongCount[k]>max){max=wrongCount[k];worst=k;}
- }
-
  const avg = correctTimes.length
   ? (correctTimes.reduce((a,b)=>a+b,0)/correctTimes.length).toFixed(1)
   : 0;
 
- alert(
-  `📊 成績總結\n\n`+
-  `✔ 答對：${correct} / ${TOTAL}\n\n`+
-  `⏱ 平均答對時間：${avg} 秒\n\n`+
-  `❌ 錯最多的乘法：${worst}`
- );
+ document.getElementById("summaryText").innerHTML=
+  `✔ 答對：${correct} / ${TOTAL}<br>`+
+  `⏱ 平均答對時間：${avg} 秒`;
+
+ document.getElementById("wrongList").style.display="none";
+ document.getElementById("wrongList").innerHTML=
+  wrongRecords.length
+   ? wrongRecords.map(r=>`❌ ${r}`).join("<br>")
+   : "🎉 沒有錯誤";
+
+ document.getElementById("overlay").style.display="block";
+}
+
+function toggleWrong(){
+ const w=document.getElementById("wrongList");
+ w.style.display = w.style.display==="none" ? "block" : "none";
+}
+function closeResult(){
+ document.getElementById("overlay").style.display="none";
 }
 </script>
 </body>
