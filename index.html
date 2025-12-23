@@ -19,12 +19,12 @@ h1{color:#ff7043}
  background:white;
  margin:16px;
  padding:16px;
- border-radius:20px;
- box-shadow:0 4px 10px rgba(0,0,0,.15);
+ border-radius:22px;
+ box-shadow:0 4px 12px rgba(0,0,0,.15);
 }
 
 #question{
- font-size:32px;
+ font-size:34px;
  margin:10px 0;
 }
 
@@ -34,13 +34,14 @@ h1{color:#ff7043}
 }
 
 #answerBox{
- border:3px solid #ffccbc;
- border-radius:12px;
- font-size:28px;
+ border:4px solid #ffccbc;
+ border-radius:14px;
+ font-size:32px;
  padding:10px;
- width:140px;
- margin:10px auto;
+ width:160px;
+ margin:12px auto;
  background:#fff;
+ min-height:40px;
 }
 
 .keypad{
@@ -55,7 +56,7 @@ h1{color:#ff7043}
  font-size:26px;
  padding:14px;
  border:none;
- border-radius:14px;
+ border-radius:16px;
  background:#ffab91;
 }
 
@@ -64,11 +65,10 @@ h1{color:#ff7043}
 }
 
 .controlBtn{
- margin-top:10px;
- font-size:20px;
- padding:10px 20px;
+ font-size:22px;
+ padding:12px 26px;
  border:none;
- border-radius:14px;
+ border-radius:18px;
  background:#ff7043;
  color:white;
 }
@@ -83,15 +83,31 @@ h1{color:#ff7043}
 }
 
 .resultCard{
- background:#fff7e6;
- border-radius:22px;
+ background:linear-gradient(180deg,#fffdf7,#fff4e6);
+ border-radius:26px;
  padding:20px;
  width:90%;
  max-width:360px;
+ position:relative;
+}
+
+.resultCard::before{
+ content:"⭐";
+ position:absolute;
+ top:-14px;
+ left:-10px;
+ font-size:36px;
+}
+.resultCard::after{
+ content:"🎀";
+ position:absolute;
+ top:-16px;
+ right:-8px;
+ font-size:34px;
 }
 
 .resultHeader{
- font-size:30px;
+ font-size:32px;
  color:#ff6f61;
  font-weight:bold;
 }
@@ -99,21 +115,23 @@ h1{color:#ff7043}
 .scoreRow{
  display:flex;
  justify-content:space-between;
- font-size:20px;
- margin:6px 0;
-}
-
-.wrongList{
- background:#fff1f0;
+ background:#fff;
  border-radius:14px;
- padding:10px;
- margin-top:10px;
- text-align:left;
- max-height:160px;
- overflow:auto;
+ padding:8px 14px;
+ margin:8px 0;
+ font-size:20px;
 }
 
-.wrongItem{color:#a8071a}
+.scoreRow span:last-child{
+ font-size:24px;
+ color:#fa541c;
+}
+
+.avgTime{
+ font-size:18px;
+ color:#9254de;
+ margin:10px 0;
+}
 
 .resultBtn{
  width:100%;
@@ -121,11 +139,26 @@ h1{color:#ff7043}
  font-size:20px;
  padding:10px;
  border:none;
- border-radius:14px;
+ border-radius:16px;
 }
 
 .retry{background:#52c41a;color:white}
 .restart{background:#1890ff;color:white}
+
+.wrongList{
+ background:#fff1f0;
+ border-radius:16px;
+ padding:10px;
+ margin-top:10px;
+ max-height:160px;
+ overflow:auto;
+ text-align:left;
+}
+
+.wrongItem{
+ color:#a8071a;
+ margin-bottom:4px;
+}
 </style>
 </head>
 
@@ -155,7 +188,7 @@ h1{color:#ff7043}
   <button onclick="press('9')">9</button>
   <button onclick="del()">⌫</button>
   <button onclick="press('0')">0</button>
-  <button onclick="submit()">完成</button>
+  <button disabled>　</button>
  </div>
 </div>
 
@@ -198,36 +231,47 @@ function start(list){
 function next(){
  if(idx>=q.length){finish();return;}
  ans="";
- document.getElementById("answerBox").innerText="";
+ answerBox.innerText="";
  let {a,b}=q[idx];
- document.getElementById("question").innerText=`${a} × ${b} = ?`;
- document.getElementById("progress").innerText=`第 ${idx+1} / ${q.length} 題`;
+ question.innerText=`${a} × ${b} = ?`;
+ progress.innerText=`第 ${idx+1} / ${q.length} 題`;
  sec=8;
- document.getElementById("timer").innerText=`⏱ ${sec}`;
+ timerText();
  clearInterval(timer);
  timer=setInterval(()=>{
   sec--;
   tick.currentTime=0;tick.play();
-  document.getElementById("timer").innerText=`⏱ ${sec}`;
-  if(sec<=0){clearInterval(timer);mark(false);}
+  timerText();
+  if(sec<=0){
+   clearInterval(timer);
+   mark(false);
+  }
  },1000);
 }
 
+function timerText(){
+ timer.innerText=`⏱ ${sec}`;
+}
+
 function press(n){
- if(ans.length>=3)return;
+ if(ans.length>=2) return;
  ans+=n;
- document.getElementById("answerBox").innerText=ans;
+ answerBox.innerText=ans;
+
+ let {a,b}=q[idx];
+ let correctAns=a*b;
+
+ if(correctAns<10 && ans.length===1){
+  mark(Number(ans)===correctAns);
+ }
+ if(correctAns>=10 && ans.length===2){
+  mark(Number(ans)===correctAns);
+ }
 }
 
 function del(){
  ans=ans.slice(0,-1);
- document.getElementById("answerBox").innerText=ans;
-}
-
-function submit(){
- if(ans==="")return;
- let {a,b}=q[idx];
- mark(Number(ans)===a*b);
+ answerBox.innerText=ans;
 }
 
 function mark(ok){
@@ -239,32 +283,51 @@ function mark(ok){
   audioOK.currentTime=0;audioOK.play();
  }else{
   wrong++;
-  wrongDetail.push(`${a}×${b}=${a*b}`);
+  wrongDetail.push(`${a} × ${b} = ${a*b}`);
   audioWrong.currentTime=0;audioWrong.play();
  }
  idx++;
- setTimeout(next,800);
+ setTimeout(next,700);
 }
 
 function finish(){
  audioEnd.play();
- let avg=correctTimes.length?
- (correctTimes.reduce((a,b)=>a+b)/correctTimes.length).toFixed(1):0;
- document.getElementById("quizCard").style.display="none";
- document.getElementById("resultOverlay").style.display="flex";
- document.getElementById("resultCard").innerHTML=`
-  <div class="resultHeader">📘 成績單</div>
-  <div class="scoreRow"><span>✔ 答對</span><span>${correct}</span></div>
-  <div class="scoreRow"><span>✖ 答錯</span><span>${wrong}</span></div>
-  <div class="scoreRow"><span>⏱ 平均時間</span><span>${avg} 秒</span></div>
+ let avg=correctTimes.length
+  ?(correctTimes.reduce((a,b)=>a+b)/correctTimes.length).toFixed(1)
+  :0;
 
-  <button class="resultBtn retry" onclick="start(q.filter((_,i)=>wrongDetail.includes(q[i].a+'×'+q[i].b+'='+(q[i].a*q[i].b))))">🔁 錯題重練</button>
+ quizCard.style.display="none";
+ resultOverlay.style.display="flex";
+
+ resultCard.innerHTML=`
+  <div class="resultHeader">📘 成績單</div>
+
+  <div class="scoreRow">
+   <span>✔ 答對</span><span>${correct}</span>
+  </div>
+  <div class="scoreRow">
+   <span>✖ 答錯</span><span>${wrong}</span>
+  </div>
+
+  <div class="avgTime">⏱ 平均作答時間 ${avg} 秒</div>
+
+  <button class="resultBtn retry" onclick="retryWrong()">🔁 錯題重練</button>
   <button class="resultBtn restart" onclick="location.reload()">📝 重新測驗</button>
 
   <div class="wrongList">
    ${wrongDetail.map(w=>`<div class="wrongItem">❌ ${w}</div>`).join("")||"🎉 全對！"}
   </div>
  `;
+}
+
+function retryWrong(){
+ let list=wrongDetail.map(w=>{
+  let p=w.match(/(\d+) × (\d+)/);
+  return {a:Number(p[1]),b:Number(p[2])};
+ });
+ resultOverlay.style.display="none";
+ quizCard.style.display="block";
+ start(list);
 }
 </script>
 
