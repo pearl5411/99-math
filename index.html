@@ -1,310 +1,238 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
- content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>99乘法考試</title>
 
 <style>
 body{
  margin:0;
- font-family:"Arial Rounded MT Bold","Arial";
- background:linear-gradient(#e3f2fd,#fff);
+ font-family:"Arial Rounded MT Bold",system-ui;
+ background:linear-gradient(135deg,#fff0f6,#e0f7ff);
  text-align:center;
- user-select:none;
 }
-.container{max-width:420px;margin:auto;padding:20px;}
-h1{color:#1976d2;}
-#status{font-size:20px;}
-#timer{font-size:32px;color:#e53935;font-weight:bold;}
-#timer.urgent{
- animation:flash 0.5s infinite;
+.container{
+ max-width:420px;
+ margin:auto;
+ padding:20px;
 }
-@keyframes flash{
- 0%{transform:scale(1);}
- 50%{transform:scale(1.3);}
- 100%{transform:scale(1);}
-}
-#question{
+h1{color:#ff6fae;}
+.question{
  font-size:36px;
- background:#fff9c4;
- padding:15px;
- border-radius:20px;
- margin:15px 0;
+ margin:20px 0;
 }
-#reveal{
- display:none;
- font-size:32px;
- color:red;
- font-weight:bold;
- margin:10px 0;
+.timer{
+ font-size:28px;
+ color:#ff5252;
 }
-#input{
- width:100%;
- height:55px;
- font-size:30px;
- text-align:center;
- border-radius:15px;
- border:3px solid #90caf9;
- background:#e3f2fd;
+.progress{
+ margin:10px;
+ font-size:18px;
 }
 .keypad{
  display:grid;
  grid-template-columns:repeat(3,1fr);
  gap:12px;
- margin-top:15px;
+ margin-top:20px;
 }
-.keypad button{
+button{
+ font-size:24px;
+ padding:18px;
+ border:none;
+ border-radius:14px;
+ background:#fff;
+ box-shadow:0 4px 8px rgba(0,0,0,.15);
+}
+button:active{transform:scale(.95);}
+.start-btn{
+ background:#ff8fc7;
+ color:#fff;
  font-size:26px;
- padding:20px;
- border-radius:20px;
- border:none;
- background:#64b5f6;
- color:white;
 }
-#startBtn{
- margin-top:18px;
- padding:14px 30px;
- font-size:22px;
- border-radius:20px;
- border:none;
- background:#f48fb1;
- color:white;
-}
+.hidden{display:none;}
 
-/* ===== 成績畫面 ===== */
-#overlay{
- display:none;
+.modal{
  position:fixed;
  inset:0;
- background:rgba(0,0,0,0.45);
-}
-#result{
- background:white;
- width:85%;
- max-width:360px;
- margin:90px auto;
- padding:25px;
- border-radius:25px;
- animation:pop 0.4s ease;
-}
-@keyframes pop{
- from{transform:scale(0.7);opacity:0;}
- to{transform:scale(1);opacity:1;}
-}
-#result h2{
- margin-top:0;
- font-size:30px;
- color:#1976d2;
-}
-.score{
- font-size:48px;
- color:#4caf50;
- margin:15px 0;
+ background:rgba(0,0,0,.4);
+ display:flex;
+ align-items:center;
+ justify-content:center;
 }
 .card{
- background:#f1f8ff;
+ background:#fff;
  border-radius:20px;
- padding:12px;
- margin:10px 0;
- font-size:20px;
+ padding:20px;
+ width:90%;
+ max-width:400px;
+ animation:pop .4s ease;
 }
-#restart{
+@keyframes pop{
+ from{transform:scale(.7);opacity:0}
+ to{transform:scale(1);opacity:1}
+}
+.score{
+ font-size:28px;
+ color:#ff6fae;
+}
+.avg{
+ font-size:20px;
+ margin:10px 0;
+}
+.detail{
+ text-align:left;
  margin-top:15px;
- padding:14px 30px;
- font-size:22px;
- border:none;
- border-radius:25px;
- background:#ffb74d;
- color:white;
+ max-height:200px;
+ overflow:auto;
+}
+.detail div{
+ padding:6px;
+}
+.wrong{
+ color:red;
+ font-weight:bold;
+}
+.small-btn{
+ margin-top:12px;
+ font-size:18px;
+ padding:10px;
+ background:#e0f7ff;
 }
 </style>
 </head>
 
 <body>
 <div class="container">
-<h1>99乘法考試</h1>
-<div id="status">尚未開始</div>
-<div id="timer">8</div>
-<div id="question">請按開始</div>
-<div id="reveal"></div>
-<input id="input" readonly>
+ <h1>99乘法考試</h1>
 
-<div class="keypad">
-<button>1</button><button>2</button><button>3</button>
-<button>4</button><button>5</button><button>6</button>
-<button>7</button><button>8</button><button>9</button>
-<button>0</button><button>清除</button>
+ <div id="start">
+  <button class="start-btn" onclick="startExam()">開始測驗</button>
+ </div>
+
+ <div id="exam" class="hidden">
+  <div class="progress" id="progress"></div>
+  <div class="timer" id="timer">8</div>
+  <div class="question" id="question"></div>
+  <div class="keypad" id="keypad"></div>
+ </div>
 </div>
 
-<button id="startBtn">開始測驗</button>
-</div>
-
-<!-- 成績 -->
-<div id="overlay">
- <div id="result">
-  <h2>🎉 完成測驗</h2>
+<!-- 成績彈窗 -->
+<div id="modal" class="modal hidden">
+ <div class="card">
   <div class="score" id="scoreText"></div>
-  <div class="card" id="timeText"></div>
-  <button id="restart">重新測驗</button>
+  <div class="avg" id="avgText"></div>
+
+  <button class="small-btn" onclick="toggleDetail()">查看錯誤明細</button>
+
+  <div class="detail hidden" id="detailList"></div>
+
+  <button class="small-btn" onclick="restart()">重新測驗</button>
  </div>
 </div>
 
 <script>
-/* ===== 音訊（最穩） ===== */
-let audioCtx=null;
-function ensureAudio(){
- if(!audioCtx){
-  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
- }
- if(audioCtx.state!=="running"){
-  audioCtx.resume().catch(()=>{});
- }
-}
-function unlockOnce(){
- ensureAudio();
- const o=audioCtx.createOscillator();
- const g=audioCtx.createGain();
- g.gain.value=0;
- o.connect(g).connect(audioCtx.destination);
- o.start();
- o.stop(audioCtx.currentTime+0.02);
-}
-function tickSound(){
- ensureAudio();
- const o=audioCtx.createOscillator();
- const g=audioCtx.createGain();
- o.frequency.value=700;
- g.gain.value=0.06;
- o.connect(g).connect(audioCtx.destination);
- o.start();
- o.stop(audioCtx.currentTime+0.05);
-}
-function ding(){
- ensureAudio();
- const t=audioCtx.currentTime;
- for(let i=0;i<2;i++){
-  const o=audioCtx.createOscillator();
-  const g=audioCtx.createGain();
-  o.frequency.value=800+i*300;
-  g.gain.value=0.15;
-  o.connect(g).connect(audioCtx.destination);
-  o.start(t+i*0.15);
-  o.stop(t+i*0.15+0.12);
- }
-}
-function speak(t){
- speechSynthesis.cancel();
- setTimeout(()=>{
-  const u=new SpeechSynthesisUtterance(t);
-  u.lang="zh-TW";
-  speechSynthesis.speak(u);
- },100);
-}
-
-/* ===== 遊戲 ===== */
-const TOTAL=30,LIMIT=8;
-let q=0,a=0,b=0,ans=0,time=0,timer;
-let playing=false;
+let total=30, idx=0, a=0,b=0;
+let timer=8, tId;
 let correct=0;
-let times=[];
-let qStart=0;
+let answer="";
+let startTime;
+let correctTimes=[];
+let wrongDetails=[];
 
-const timerEl=document.getElementById("timer");
-const reveal=document.getElementById("reveal");
-
-document.getElementById("startBtn").onclick=()=>{
- if(playing) return;
- unlockOnce();
- start();
-};
-
-document.getElementById("restart").onclick=()=>{
- document.getElementById("overlay").style.display="none";
- start();
-};
-
-function start(){
- playing=true;
- q=0; correct=0; times=[];
- next();
+function startExam(){
+ document.getElementById("start").classList.add("hidden");
+ document.getElementById("exam").classList.remove("hidden");
+ idx=0; correct=0; correctTimes=[]; wrongDetails=[];
+ nextQ();
 }
 
-function next(){
- clearInterval(timer);
- reveal.style.display="none";
-
- if(q>=TOTAL){
-  end();
-  return;
- }
-
- q++;
- time=LIMIT;
- timerEl.textContent=time;
- timerEl.classList.remove("urgent");
- document.getElementById("status").textContent=`第 ${q} 題`;
- document.getElementById("input").value="";
-
+function nextQ(){
+ if(idx>=total){ finish(); return; }
+ idx++;
  a=Math.floor(Math.random()*9)+1;
  b=Math.floor(Math.random()*9)+1;
- ans=a*b;
- document.getElementById("question").textContent=`${a} × ${b} = ?`;
- qStart=Date.now();
+ answer="";
+ timer=8;
+ startTime=Date.now();
+ updateUI();
+ startTimer();
+}
 
- timer=setInterval(()=>{
-  ensureAudio();
-  time--;
-  timerEl.textContent=time;
-  tickSound();
-  if(time<=3) timerEl.classList.add("urgent");
-  if(time<=0){clearInterval(timer);wrong();}
+function updateUI(){
+ document.getElementById("progress").textContent=`第 ${idx} / ${total} 題`;
+ document.getElementById("question").textContent=`${a} × ${b} = ?`;
+ document.getElementById("timer").textContent=timer;
+ drawKeys();
+}
+
+function startTimer(){
+ clearInterval(tId);
+ tId=setInterval(()=>{
+  timer--;
+  document.getElementById("timer").textContent=timer;
+  if(timer<=0){
+   wrongDetails.push(`${a}×${b} = ${a*b}`);
+   clearInterval(tId);
+   setTimeout(nextQ,500);
+  }
  },1000);
 }
 
-document.querySelectorAll(".keypad button").forEach(btn=>{
- btn.onclick=()=>{
-  if(!playing) return;
-  ensureAudio();
-  if(btn.textContent==="清除"){
-   document.getElementById("input").value="";
-   return;
-  }
-  press(btn.textContent);
- };
-});
-
-function press(n){
- const input=document.getElementById("input");
- input.value+=n;
- if(+input.value===ans){
-  clearInterval(timer);
-  ding();
-  correct++;
-  times.push((Date.now()-qStart)/1000);
-  next();
- }else if(input.value.length>=ans.toString().length){
-  clearInterval(timer);
-  wrong();
+function drawKeys(){
+ const k=document.getElementById("keypad");
+ k.innerHTML="";
+ for(let i=0;i<=9;i++){
+  const btn=document.createElement("button");
+  btn.textContent=i;
+  btn.onclick=()=>press(i);
+  k.appendChild(btn);
  }
+ const del=document.createElement("button");
+ del.textContent="⌫";
+ del.onclick=()=>{answer=answer.slice(0,-1);}
+ k.appendChild(del);
+ const ok=document.createElement("button");
+ ok.textContent="OK";
+ ok.onclick=check;
+ k.appendChild(ok);
 }
 
-function wrong(){
- speak("答錯了");
- reveal.textContent=`正確答案：${a} × ${b} = ${ans}`;
- reveal.style.display="block";
- setTimeout(next,3200);
+function press(n){ answer+=n; }
+
+function check(){
+ if(answer==="")return;
+ clearInterval(tId);
+ if(Number(answer)===a*b){
+  correct++;
+  correctTimes.push((Date.now()-startTime)/1000);
+ }else{
+  wrongDetails.push(`${a}×${b} = ${a*b}`);
+ }
+ setTimeout(nextQ,300);
 }
 
-function end(){
- playing=false;
- speak("恭喜你完成測驗");
- const avg=times.length?(times.reduce((a,b)=>a+b,0)/times.length).toFixed(1):0;
- document.getElementById("scoreText").textContent=`${correct} / ${TOTAL} 題`;
- document.getElementById("timeText").textContent=`平均答對時間：${avg} 秒`;
- document.getElementById("overlay").style.display="block";
+function finish(){
+ document.getElementById("exam").classList.add("hidden");
+ document.getElementById("modal").classList.remove("hidden");
+
+ const avg = correctTimes.length
+ ? (correctTimes.reduce((a,b)=>a+b,0)/correctTimes.length).toFixed(1)
+ : 0;
+
+ document.getElementById("scoreText").textContent=`成績：${correct} / ${total}`;
+ document.getElementById("avgText").textContent=`平均作答時間：${avg} 秒`;
+
+ const d=document.getElementById("detailList");
+ d.innerHTML=wrongDetails.map(x=>`<div class="wrong">${x}</div>`).join("");
 }
+
+function toggleDetail(){
+ document.getElementById("detailList").classList.toggle("hidden");
+}
+
+function restart(){ location.reload(); }
 </script>
 </body>
 </html>
