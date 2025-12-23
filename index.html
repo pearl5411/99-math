@@ -43,7 +43,7 @@ button:active{background:#ffb84d;}
  border-radius:16px;padding:20px;margin-top:20px;
 }
 .big{font-size:26px;font-weight:bold;}
-.detail{color:#ff4d4f;margin-top:10px;}
+.detail{color:#ff4d4f;margin-top:6px;}
 </style>
 </head>
 
@@ -66,57 +66,89 @@ button:active{background:#ffb84d;}
 <audio id="ding" src="data:audio/wav;base64,UklGRmQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YYAAAAA="></audio>
 
 <script>
-let questions=[],wrongList=[];
-let index=0,a,b,answer;
-let sec=8,timerId;
-let answered=false,running=false;
-let token=0;
-let inputBuffer="";
-let correct=0,wrong=0;
-let totalCorrectTime=0,startTime=0;
+/* ===== DOM ===== */
+const qEl = document.getElementById("question");
+const tEl = document.getElementById("timer");
+const pEl = document.getElementById("progress");
+const rEl = document.getElementById("reveal");
+const inputEl = document.getElementById("input");
+const padEl = document.getElementById("pad");
+const resultBox = document.getElementById("resultBox");
+const startBtn = document.getElementById("startBtn");
 
-const qEl=question, tEl=timer, pEl=progress;
-const rEl=reveal, inputEl=input, padEl=pad;
-const resultBox=document.getElementById("resultBox");
+/* ===== 狀態 ===== */
+let questions=[], wrongList=[];
+let index=0, a=0, b=0, answer=0;
+let sec=8, timerId=null;
+let answered=false, running=false;
+let token=0, inputBuffer="";
+let correct=0, wrong=0;
+let totalCorrectTime=0, startTime=0;
+let audioUnlocked=false;
 
+/* ===== 建立數字鍵 ===== */
 for(let i=1;i<=9;i++){
- let b=document.createElement("button");
- b.textContent=i;
- b.onclick=()=>submit(i);
- padEl.appendChild(b);
+ const btn=document.createElement("button");
+ btn.textContent=i;
+ btn.onclick=()=>submit(i);
+ padEl.appendChild(btn);
 }
 
-function play(id){
+/* ===== 音效（安全播放） ===== */
+function safePlay(id){
+ if(!audioUnlocked) return;
  const a=document.getElementById(id);
- a.currentTime=0;a.play().catch(()=>{});
+ a.currentTime=0;
+ a.play().catch(()=>{});
 }
-function speak(t){
+function speak(text){
+ if(!audioUnlocked) return;
  speechSynthesis.cancel();
- speechSynthesis.speak(new SpeechSynthesisUtterance(t));
+ speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 
+/* ===== 解鎖音效（iPhone 必須） ===== */
+function unlockAudio(){
+ if(audioUnlocked) return;
+ audioUnlocked=true;
+ document.getElementById("beep").play().catch(()=>{});
+ document.getElementById("ding").play().catch(()=>{});
+}
+
+/* ===== 開始測驗 ===== */
 startBtn.onclick=()=>{
+ unlockAudio();
  if(running) return;
+
  running=true;
- questions=[];wrongList=[];
+ questions=[]; wrongList=[];
  correct=wrong=totalCorrectTime=0;
- for(let i=0;i<30;i++)
-  questions.push({a:rand(),b:rand()});
  index=0;
+
+ for(let i=0;i<30;i++){
+  questions.push({
+   a:Math.floor(Math.random()*9)+1,
+   b:Math.floor(Math.random()*9)+1
+  });
+ }
+
  resultBox.style.display="none";
  next();
 };
 
-function rand(){return Math.floor(Math.random()*9)+1;}
-
+/* ===== 下一題 ===== */
 function next(){
  clearInterval(timerId);
- answered=false;inputBuffer="";
+ answered=false;
+ inputBuffer="";
  inputEl.textContent="";
  rEl.style.display="none";
  token++;
 
- if(index>=questions.length){finish();return;}
+ if(index>=questions.length){
+  finish();
+  return;
+ }
 
  ({a,b}=questions[index]);
  answer=a*b;
@@ -124,16 +156,20 @@ function next(){
 
  pEl.textContent=`第 ${index+1} / ${questions.length} 題`;
  qEl.textContent=`${a} × ${b} = ?`;
+
  startTimer(token);
 }
 
-function startTimer(tk){
+/* ===== 計時 ===== */
+function startTimer(myToken){
  sec=8;
  tEl.textContent=`剩 ${sec} 秒`;
  timerId=setInterval(()=>{
-  if(tk!==token) return;
-  sec--; play("beep");
+  if(myToken!==token) return;
+  sec--;
+  safePlay("beep");
   tEl.textContent=`剩 ${sec} 秒`;
+
   if(sec<=0){
    clearInterval(timerId);
    if(answered) return;
@@ -148,18 +184,22 @@ function startTimer(tk){
  },1000);
 }
 
+/* ===== 作答 ===== */
 function submit(n){
  if(answered||!running) return;
+
  inputBuffer+=n;
  inputEl.textContent=inputBuffer;
+
  if(inputBuffer.length < String(answer).length) return;
 
- answered=true; clearInterval(timerId);
+ answered=true;
+ clearInterval(timerId);
 
  if(Number(inputBuffer)===answer){
   correct++;
   totalCorrectTime+=(Date.now()-startTime)/1000;
-  play("ding");play("ding");
+  safePlay("ding"); safePlay("ding");
  }else{
   wrong++;
   wrongList.push({a,b,answer,user:Number(inputBuffer)});
@@ -167,17 +207,19 @@ function submit(n){
   rEl.style.display="block";
   speak("答錯了");
  }
+
  setTimeout(()=>{index++;next();},2000);
 }
 
+/* ===== 結束 ===== */
 function finish(){
  running=false;
  speak("恭喜你完成測驗");
  const avg=correct?(totalCorrectTime/correct).toFixed(1):0;
 
- let detailHTML="";
+ let detail="";
  wrongList.forEach(q=>{
-  detailHTML+=`<div class="detail">${q.a}×${q.b}＝${q.answer}（你答：${q.user??"未答"}）</div>`;
+  detail+=`<div class="detail">${q.a}×${q.b}＝${q.answer}（你答：${q.user??"未答"}）</div>`;
  });
 
  resultBox.innerHTML=`
@@ -187,7 +229,7 @@ function finish(){
  ⏱ 平均答對時間：${avg} 秒<br><br>
  <button onclick="location.reload()">重新測驗</button>
  <button onclick="retryWrong()">錯題重練</button>
- <div>${detailHTML}</div>
+ <div>${detail}</div>
  `;
  resultBox.style.display="block";
 }
@@ -195,7 +237,8 @@ function finish(){
 function retryWrong(){
  if(wrongList.length===0) return;
  questions = wrongList.map(q=>({a:q.a,b:q.b}));
- wrongList=[];index=0;
+ wrongList=[];
+ index=0;
  correct=wrong=totalCorrectTime=0;
  resultBox.style.display="none";
  running=true;
