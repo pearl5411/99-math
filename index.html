@@ -25,16 +25,40 @@ h1{color:#ff7043}
 #question{font-size:34px}
 #timer{font-size:22px;color:#d84315}
 
+/* 🔹 答案框 */
+#answerWrap{
+  position:relative;
+  width:120px;
+  margin:12px auto 6px;
+}
 #answerBox{
   border:4px solid #ffccbc;
-  border-radius:16px;
-  font-size:34px;
-  padding:10px;
-  width:160px;
-  margin:12px auto 6px;
-  min-height:42px;
+  border-radius:14px;
+  font-size:28px;
+  padding:6px;
+  min-height:36px;
   color:#1890ff;
+  background:#fff;
 }
+
+/* 😭 哭臉在答案框左右 */
+.cry{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:42px;
+  opacity:0;
+  pointer-events:none;
+}
+.cry.left{left:-48px}
+.cry.right{right:-48px}
+
+@keyframes cryAnim{
+  0%{opacity:0;transform:translateY(-50%) scale(.5);}
+  30%{opacity:1;transform:translateY(-50%) scale(1.1);}
+  100%{opacity:0;transform:translateY(-50%) scale(.6);}
+}
+.showCry{animation:cryAnim 1.2s}
 
 #correctHint{
   font-size:20px;
@@ -57,6 +81,7 @@ h1{color:#ff7043}
   background:#ffab91;
 }
 
+/* 成績單遮罩 */
 .overlay{
   position:fixed;
   inset:0;
@@ -66,25 +91,42 @@ h1{color:#ff7043}
   align-items:center;
 }
 
+/* 🎀 成績單（粉嫩貼紙感） */
 .resultCard{
   background:#fffdf7;
-  border-radius:26px;
-  padding:20px;
+  border-radius:28px;
+  padding:22px;
   width:90%;
   max-width:360px;
+
+  border:4px dashed #ffb6c1;
+  box-shadow:
+    0 6px 0 #ffd1dc,
+    0 12px 18px rgba(0,0,0,.18);
 }
 
-.resultHeader{
-  font-size:32px;
-  color:#ff6f61;
-  margin-bottom:10px;
-}
-
-.scoreRow{
+/* 成績標題（方案 D） */
+.cuteHeader{
   display:flex;
-  justify-content:space-between;
+  justify-content:center;
+  align-items:center;
+  gap:12px;
+  margin-bottom:6px;
+}
+.cuteHeader .decor{
+  font-size:30px;
+}
+.cuteHeader .title{
+  font-size:32px;
+  font-weight:bold;
+  color:#ff6f61;
+}
+
+/* 成績列置中 */
+.scoreRow{
+  text-align:center;
   font-size:22px;
-  margin:6px 0;
+  margin:8px 0;
 }
 
 .resultBtn{
@@ -95,7 +137,6 @@ h1{color:#ff7043}
   border:none;
   border-radius:16px;
 }
-
 .retry{background:#52c41a;color:white}
 .restart{background:#1890ff;color:white}
 
@@ -112,27 +153,7 @@ h1{color:#ff7043}
   margin-bottom:6px;
 }
 
-/* 😭 哭臉在答案框左右 */
-.crySide{
-  position:fixed;
-  top:50%;
-  font-size:60px;
-  opacity:0;
-  pointer-events:none;
-  z-index:9999;
-}
-.crySide.left{ left:calc(50% - 150px); }
-.crySide.right{ left:calc(50% + 90px); }
-
-@keyframes crySideAnim{
-  0%{opacity:0;transform:translateY(-50%) scale(.5);}
-  20%{opacity:1;transform:translateY(-50%) scale(1.1) rotate(-10deg);}
-  60%{transform:translateY(-50%) rotate(10deg);}
-  100%{opacity:0;transform:translateY(-50%) scale(.6);}
-}
-.showCrySide{animation:crySideAnim 1.2s}
-
-/* ⭐ 成績星星爆開 */
+/* ⭐ 星星爆開動畫 */
 #starBurst{
   position:fixed;
   left:50%;
@@ -147,7 +168,7 @@ h1{color:#ff7043}
   animation:starFly 1.2s ease-out forwards;
 }
 @keyframes starFly{
-  0%{opacity:0;transform:translate(0,0) scale(.4)}
+  0%{opacity:0;transform:scale(.4)}
   20%{opacity:1}
   100%{
     opacity:0;
@@ -167,7 +188,13 @@ h1{color:#ff7043}
 <div class="card" id="quizCard" style="display:none">
   <div id="question"></div>
   <div id="timer"></div>
-  <div id="answerBox"></div>
+
+  <div id="answerWrap">
+    <div class="cry left">😭</div>
+    <div id="answerBox"></div>
+    <div class="cry right">😭</div>
+  </div>
+
   <div id="correctHint"></div>
   <div class="keypad" id="pad"></div>
 </div>
@@ -176,12 +203,9 @@ h1{color:#ff7043}
   <div class="resultCard" id="resultCard"></div>
 </div>
 
-<div class="crySide left">😭</div>
-<div class="crySide right">😭</div>
 <div id="starBurst"></div>
 
 <script>
-/* 音效 */
 let audioCtx;
 function initAudio(){
   if(!audioCtx){
@@ -207,12 +231,11 @@ function speak(t){
   speechSynthesis.speak(u);
 }
 
-/* 動畫 */
 function showCry(){
-  document.querySelectorAll(".crySide").forEach(c=>{
-    c.classList.remove("showCrySide");
+  document.querySelectorAll(".cry").forEach(c=>{
+    c.classList.remove("showCry");
     void c.offsetWidth;
-    c.classList.add("showCrySide");
+    c.classList.add("showCry");
   });
 }
 function showStars(){
@@ -231,13 +254,9 @@ function showStars(){
   setTimeout(()=>box.innerHTML="",1400);
 }
 
-/* 狀態 */
 let list=[],i=0,ans="",sec=8,timer;
-let wrong=[],correct=0;
-let totalCorrectTime=0;
-let qStartTime=0;
+let wrong=[],correct=0,totalCorrectTime=0,qStartTime=0;
 
-/* DOM */
 const startBtn=document.getElementById("startBtn");
 const startCard=document.getElementById("startCard");
 const quizCard=document.getElementById("quizCard");
@@ -249,7 +268,6 @@ const pad=document.getElementById("pad");
 const overlay=document.getElementById("resultOverlay");
 const resultCard=document.getElementById("resultCard");
 
-/* 鍵盤 */
 ["1","2","3","4","5","6","7","8","9","del","0"].forEach(k=>{
   const b=document.createElement("button");
   b.textContent=k==="del"?"⌫":k;
@@ -257,7 +275,6 @@ const resultCard=document.getElementById("resultCard");
   pad.appendChild(b);
 });
 
-/* 開始 */
 startBtn.onclick=()=>{
   initAudio();beep(200,.05);
   list=Array.from({length:20},()=>({
@@ -319,12 +336,14 @@ function finish(){
   quizCard.style.display="none";
   let html=wrong.map(w=>`<div class="detailItem">${w}</div>`).join("");
   resultCard.innerHTML=`
-    <div class="resultHeader">📘 成績單</div>
-    <div class="scoreRow"><span>答對</span><span>${correct}</span></div>
-    <div class="scoreRow"><span>答錯</span><span>${wrong.length}</span></div>
-    <div class="scoreRow"><span>⏱ 平均時間</span>
-      <span>${correct?(totalCorrectTime/correct).toFixed(1)+" 秒":"-"}</span>
+    <div class="cuteHeader">
+      <span class="decor">💗</span>
+      <span class="title">📘 成績單</span>
+      <span class="decor">💗</span>
     </div>
+    <div class="scoreRow">答對題數：${correct}</div>
+    <div class="scoreRow">答錯題數：${wrong.length}</div>
+    <div class="scoreRow">⏱ 平均時間：${correct?(totalCorrectTime/correct).toFixed(1)+" 秒":"-"}</div>
     <button class="resultBtn retry" onclick="retry()">錯題重練</button>
     <button class="resultBtn restart" onclick="location.reload()">重新測驗</button>
     <button class="resultBtn" onclick="toggle()">查看錯誤明細</button>
