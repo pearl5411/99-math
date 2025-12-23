@@ -73,7 +73,7 @@ button:active{background:#ffc53d;}
  transform:scale(.96);
 }
 
-/* ===== 成績彈窗 ===== */
+/* 成績彈窗 */
 #overlay{
  position:fixed;
  inset:0;
@@ -93,7 +93,7 @@ button:active{background:#ffc53d;}
  padding:22px;
  width:90%;
  max-width:420px;
- animation:pop .35s ease;
+ animation:pop .3s ease;
 }
 @keyframes pop{
  from{transform:scale(.7);opacity:0;}
@@ -133,7 +133,7 @@ button:active{background:#ffc53d;}
 </div>
 
 <script>
-/* ===== Audio ===== */
+/* ========= Audio ========= */
 let audioCtx=null;
 function initAudio(){
  if(audioCtx) return;
@@ -141,47 +141,64 @@ function initAudio(){
 }
 function beep(f=800,d=0.06){
  if(!audioCtx) return;
- const o=audioCtx.createOscillator(),g=audioCtx.createGain();
- o.frequency.value=f; g.gain.value=0.12;
+ const o=audioCtx.createOscillator();
+ const g=audioCtx.createGain();
+ o.frequency.value=f;
+ g.gain.value=0.12;
  o.connect(g); g.connect(audioCtx.destination);
  o.start(); o.stop(audioCtx.currentTime+d);
 }
-function ding(){beep(1200,.1);setTimeout(()=>beep(1500,.1),120);}
+function ding(){
+ beep(1200,.1);
+ setTimeout(()=>beep(1500,.1),120);
+}
 function speak(t){
  speechSynthesis.cancel();
  speechSynthesis.speak(new SpeechSynthesisUtterance(t));
 }
 
-/* ===== DOM ===== */
-const qEl=question,tEl=timer,pEl=progress;
-const aEl=answerBox,rEl=reveal;
-const padEl=pad,startBtn=startBtn;
-const overlay=document.getElementById("overlay");
-const resultBox=document.getElementById("resultBox");
+/* ========= DOM（⚠️ 關鍵修正） ========= */
+const qEl = document.getElementById("question");
+const tEl = document.getElementById("timer");
+const pEl = document.getElementById("progress");
+const aEl = document.getElementById("answerBox");
+const rEl = document.getElementById("reveal");
+const padEl = document.getElementById("pad");
+const startBtn = document.getElementById("startBtn");
+const overlay = document.getElementById("overlay");
+const resultBox = document.getElementById("resultBox");
 
-/* ===== State ===== */
-let questions=[],wrongList=[];
+/* ========= State ========= */
+let questions=[], wrongList=[];
 let index=0,a,b,answer;
 let sec=8,timerId,token=0;
 let input="",answered=false,running=false;
 let correct=0,wrong=0,totalTime=0,startTime=0;
 
-/* ===== Keypad ===== */
+/* ========= Keypad ========= */
 [1,2,3,4,5,6,7,8,9,0].forEach(n=>{
- const b=document.createElement("button");
- b.textContent=n;
- b.onclick=()=>submit(n);
- padEl.appendChild(b);
+ const btn=document.createElement("button");
+ btn.textContent=n;
+ btn.onclick=()=>submit(n);
+ padEl.appendChild(btn);
 });
 const del=document.createElement("button");
-del.textContent="⌫"; del.className="del";
-del.onclick=()=>{if(!answered&&running){input=input.slice(0,-1);aEl.textContent=input;}};
+del.textContent="⌫";
+del.className="del";
+del.onclick=()=>{
+ if(!answered && running){
+  input=input.slice(0,-1);
+  aEl.textContent=input;
+ }
+};
 padEl.appendChild(del);
 
-/* ===== Start (double tap confirm) ===== */
-let startConfirm=false,confirmTimer=null;
+/* ========= Start Button（雙按防誤觸） ========= */
+let startConfirm=false, confirmTimer=null;
 startBtn.onclick=()=>{
- initAudio(); beep(1,.01);
+ initAudio();
+ beep(1,.01);
+
  if(running) return;
 
  if(!startConfirm){
@@ -208,40 +225,51 @@ startBtn.onclick=()=>{
  correct=wrong=totalTime=0;
  index=0;
  for(let i=0;i<30;i++)
-  questions.push({a:r(),b:r()});
+  questions.push({a:rand(),b:rand()});
+
  next();
 };
 
-function r(){return Math.floor(Math.random()*9)+1;}
+function rand(){return Math.floor(Math.random()*9)+1;}
 
-/* ===== Next ===== */
+/* ========= Next ========= */
 function next(){
  clearInterval(timerId);
- answered=false; input="";
+ answered=false;
+ input="";
  aEl.textContent="";
  rEl.style.display="none";
  token++;
- if(index>=questions.length){finish();return;}
+
+ if(index>=questions.length){
+  finish();
+  return;
+ }
+
  ({a,b}=questions[index]);
  answer=a*b;
  startTime=Date.now();
+
  pEl.textContent=`第 ${index+1} / ${questions.length} 題`;
  qEl.textContent=`${a} × ${b} = ?`;
+
  startTimer(token);
 }
 
-/* ===== Timer ===== */
+/* ========= Timer ========= */
 function startTimer(tk){
  sec=8;
  tEl.textContent=`剩 ${sec} 秒`;
  timerId=setInterval(()=>{
   if(tk!==token) return;
-  sec--; beep();
+  sec--;
+  beep();
   tEl.textContent=`剩 ${sec} 秒`;
   if(sec<=0){
    clearInterval(timerId);
    if(answered) return;
-   answered=true; wrong++;
+   answered=true;
+   wrong++;
    wrongList.push({a,b,answer,user:null});
    rEl.textContent=`${a} × ${b} = ${answer}`;
    rEl.style.display="block";
@@ -251,11 +279,13 @@ function startTimer(tk){
  },1000);
 }
 
-/* ===== Submit ===== */
+/* ========= Submit ========= */
 function submit(n){
- if(answered||!running) return;
+ if(answered || !running) return;
+
  input+=n;
  aEl.textContent=input;
+
  if(input.length < String(answer).length) return;
 
  answered=true;
@@ -272,26 +302,29 @@ function submit(n){
   rEl.style.display="block";
   speak("答錯了");
  }
+
  setTimeout(()=>{index++;next();},2000);
 }
 
-/* ===== Finish ===== */
+/* ========= Finish ========= */
 function finish(){
  running=false;
  speak("恭喜你完成測驗");
+
  const avg=correct?(totalTime/correct).toFixed(1):0;
  let detail="";
  wrongList.forEach(q=>{
   detail+=`<div class="detail">${q.a}×${q.b}＝${q.answer}（你答：${q.user??"未答"}）</div>`;
  });
+
  resultBox.innerHTML=`
- <div class="big">測驗完成 🎉</div>
- <div class="score">✔ 答對：${correct} 題</div>
- <div class="score">✖ 答錯：${wrong} 題</div>
- <div class="score">⏱ 平均時間：${avg} 秒</div>
- <button class="resultBtn retry" onclick="retryWrong()">錯題重練</button>
- <button class="resultBtn restart" onclick="location.reload()">重新測驗</button>
- ${detail}
+  <div class="big">測驗完成 🎉</div>
+  <div class="score">✔ 答對：${correct} 題</div>
+  <div class="score">✖ 答錯：${wrong} 題</div>
+  <div class="score">⏱ 平均時間：${avg} 秒</div>
+  <button class="resultBtn retry" onclick="retryWrong()">錯題重練</button>
+  <button class="resultBtn restart" onclick="location.reload()">重新測驗</button>
+  ${detail}
  `;
  overlay.classList.add("show");
 }
@@ -300,7 +333,8 @@ function retryWrong(){
  if(wrongList.length===0) return;
  questions=wrongList.map(q=>({a:q.a,b:q.b}));
  wrongList=[];
- index=0; correct=wrong=totalTime=0;
+ index=0;
+ correct=wrong=totalTime=0;
  overlay.classList.remove("show");
  running=true;
  next();
