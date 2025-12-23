@@ -2,95 +2,75 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>99乘法測驗</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
+<title>99乘法考試</title>
 
 <style>
 body{
+ font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+ background:#f6f7fb;
  margin:0;
- font-family:system-ui;
- background:#f4f6f8;
  text-align:center;
 }
-.container{
- max-width:420px;
- margin:auto;
- padding:20px;
+.hidden{display:none}
+h1{margin:10px 0}
+#question{
+ font-size:32px;
+ margin:10px 0;
 }
-.hidden{display:none;}
-
-h1{margin-bottom:10px;}
-.question{font-size:36px;margin:20px 0;}
-.timer{font-size:28px;color:#d32f2f;}
-.progress{font-size:18px;margin:10px;}
-
+.answer{
+ font-size:36px;
+ min-height:44px;
+ margin:10px 0;
+}
+#timer{
+ font-size:20px;
+ color:#555;
+}
+#reveal{
+ font-size:26px;
+ color:red;
+ margin-top:8px;
+ display:none;
+}
 .keypad{
  display:grid;
  grid-template-columns:repeat(3,1fr);
- gap:12px;
- margin-top:20px;
+ gap:10px;
+ padding:15px;
 }
-button{
- font-size:22px;
- padding:16px;
+.keypad button{
+ font-size:28px;
+ padding:15px;
  border:none;
  border-radius:12px;
  background:#fff;
- box-shadow:0 4px 8px rgba(0,0,0,.15);
+ box-shadow:0 2px 4px rgba(0,0,0,.15);
 }
-button:active{transform:scale(.95);}
-.start-btn{
- background:#1976d2;
- color:#fff;
- font-size:26px;
-}
+.keypad button:active{transform:scale(.95)}
+.ok{background:#4caf50;color:#fff}
+.del{background:#ff9800;color:#fff}
 
-/* 成績單 */
 .score-sheet{
  background:#fff;
- border:2px solid #ccc;
- border-radius:12px;
- padding:20px;
- margin-top:20px;
+ margin:15px;
+ padding:15px;
+ border-radius:16px;
+ box-shadow:0 3px 6px rgba(0,0,0,.2);
+ text-align:left;
 }
-.sheet-title{
+.score-sheet h2{text-align:center}
+.score-big{
  font-size:22px;
- font-weight:bold;
- letter-spacing:4px;
- margin-bottom:15px;
+ margin:8px 0;
 }
-.sheet-row{
- display:flex;
- justify-content:space-between;
- font-size:18px;
- padding:6px 0;
- border-bottom:1px dashed #ccc;
-}
-.highlight{
- font-weight:bold;
- color:#d32f2f;
- border-bottom:none;
-}
-.detail-btn{
- margin:10px 0;
- padding:8px;
- font-size:16px;
-}
-.detailBox{
- max-height:0;
- overflow:hidden;
- transition:max-height .4s ease;
-}
-.detailBox.open{max-height:240px;}
-.detailBox div{
- color:#c62828;
- font-size:17px;
- padding:4px 0;
-}
-.action-btn{
- margin-top:12px;
- font-size:18px;
- padding:10px;
+button.restart-btn{
+ width:100%;
+ margin-top:10px;
+ padding:14px;
+ font-size:20px;
+ border:none;
+ border-radius:12px;
  background:#1976d2;
  color:#fff;
 }
@@ -98,224 +78,203 @@ button:active{transform:scale(.95);}
 </head>
 
 <body>
-<div class="container">
 
-<h1>99 乘法測驗</h1>
+<h1>99 乘法考試</h1>
 
 <div id="start">
- <button class="start-btn" onclick="startExam()">開始測驗</button>
+<button class="restart-btn" onclick="startExam()">開始測驗</button>
 </div>
 
 <div id="exam" class="hidden">
- <div class="progress" id="progress"></div>
- <div class="timer" id="timer">8</div>
- <div class="question" id="question"></div>
- <div class="keypad" id="keypad"></div>
+<div id="progress"></div>
+<div id="question"></div>
+<div id="answer" class="answer">＿</div>
+<div id="timer"></div>
+<div id="reveal"></div>
+
+<div class="keypad" id="keys"></div>
 </div>
 
-<div id="result" class="hidden">
- <div class="score-sheet">
-  <div class="sheet-title">99 乘 法 測 驗</div>
-
-  <div class="sheet-row"><span>考試題數</span><span>30 題</span></div>
-  <div class="sheet-row"><span>答對題數</span><span id="correctCount"></span></div>
-  <div class="sheet-row"><span>錯誤題數</span><span id="wrongCount"></span></div>
-  <div class="sheet-row highlight">
-   <span>平均作答時間</span><span id="avgTime"></span>
-  </div>
-
-  <button class="detail-btn" id="detailBtn" onclick="toggleDetail()">
-   查看錯誤明細 ▼
-  </button>
-
-  <div class="detailBox" id="detailBox">
-   <div id="detailList"></div>
-  </div>
-
-  <button id="retryBtn" class="action-btn" onclick="startRetry()" style="display:none">
-   錯題重練
-  </button>
-
-  <button class="action-btn" onclick="restart()">重新測驗</button>
- </div>
-</div>
-
+<div class="score-sheet hidden" id="score">
+<h2>測驗成績單</h2>
+<div class="score-big" id="scoreText"></div>
+<div class="score-big" id="avgTime"></div>
+<div class="score-big" id="wrongCount"></div>
+<div id="wrongList"></div>
+<button id="retryBtn" class="restart-btn" style="display:none" onclick="startRetry()">錯題重練</button>
+<button class="restart-btn" onclick="restart()">重新測驗</button>
 </div>
 
 <script>
-/* ===== 聲音系統（最穩定寫法） ===== */
-let audioCtx=null;
-
+/* ========= 穩定音效核心 ========= */
+let audioCtx;
 function unlockAudio(){
  if(!audioCtx){
   audioCtx=new (window.AudioContext||window.webkitAudioContext)();
  }
- audioCtx.resume().catch(()=>{});
 }
-
-function beep(freq=800,duration=0.07){
- if(!audioCtx)return;
+function beep(freq=800,dur=0.1){
+ if(!audioCtx) return;
  const o=audioCtx.createOscillator();
  const g=audioCtx.createGain();
- o.connect(g); g.connect(audioCtx.destination);
  o.frequency.value=freq;
- g.gain.value=0.15;
+ o.connect(g); g.connect(audioCtx.destination);
  o.start();
- o.stop(audioCtx.currentTime+duration);
+ g.gain.setValueAtTime(0.3,audioCtx.currentTime);
+ g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+ o.stop(audioCtx.currentTime+dur);
 }
-
-function correctSound(){
- beep(900,0.08);
- setTimeout(()=>beep(1200,0.08),120);
-}
-
-function wrongSound(){
- if(!('speechSynthesis' in window))return;
- const u=new SpeechSynthesisUtterance("答錯了");
- u.lang="zh-TW";
+function speak(text){
+ if(!('speechSynthesis'in window))return;
  speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(text);
+ u.lang="zh-TW";
  speechSynthesis.speak(u);
 }
 
-/* ===== 考試邏輯 ===== */
-let total=30,idx=0,a,b;
-let timer=8,tId,answer="";
-let correct=0;
-let correctTimes=[];
-let wrongDetails=[],wrongQuestions=[];
-let retryMode=false,retryList=[];
-let startTime=0;
+/* ========= 遊戲資料 ========= */
+let list=[],wrongQuestions=[],retryList=[];
+let idx=0,total=30,a=0,b=0,answer="";
+let timer=null,sec=8;
+let correct=0,wrongDetails=[],times=[];
+let startTime=0,retryMode=false;
 
+/* ========= 建立鍵盤 ========= */
+function drawKeys(){
+ const k=document.getElementById("keys");
+ k.innerHTML="";
+ for(let i=1;i<=9;i++) addKey(i);
+ addKey(0);
+ const del=document.createElement("button");
+ del.textContent="⌫"; del.className="del";
+ del.onclick=()=>{answer=answer.slice(0,-1);updateAnswer();}
+ k.appendChild(del);
+
+ const ok=document.createElement("button");
+ ok.textContent="OK"; ok.className="ok";
+ ok.onclick=submit;
+ k.appendChild(ok);
+}
+function addKey(n){
+ const b=document.createElement("button");
+ b.textContent=n;
+ b.onclick=()=>{answer+=n;updateAnswer();}
+ document.getElementById("keys").appendChild(b);
+}
+function updateAnswer(){
+ document.getElementById("answer").textContent=answer||"＿";
+}
+
+/* ========= 流程 ========= */
 function startExam(){
  unlockAudio();
  document.getElementById("start").classList.add("hidden");
  document.getElementById("exam").classList.remove("hidden");
- idx=0;correct=0;
- correctTimes=[];wrongDetails=[];wrongQuestions=[];
- retryMode=false;
- nextQ();
+ list=[];
+ for(let i=0;i<total;i++){
+  let x=Math.ceil(Math.random()*9);
+  let y=Math.ceil(Math.random()*9);
+  list.push({a:x,b:y});
+ }
+ shuffle(list);
+ resetVars();
+ next();
+}
+function resetVars(){
+ idx=0;correct=0;wrongDetails=[];wrongQuestions=[];
+ times=[];retryMode=false;
 }
 
-function nextQ(){
+function next(){
  if(idx>=total){finish();return;}
+ const q=list[idx];
+ a=q.a; b=q.b;
  idx++;
- if(retryMode){
-  const q=retryList[idx-1];
-  a=q.a;b=q.b;
- }else{
-  a=Math.floor(Math.random()*9)+1;
-  b=Math.floor(Math.random()*9)+1;
- }
- answer=""; timer=8;
- startTime=Date.now();
+ answer="";
+ document.getElementById("reveal").style.display="none";
  updateUI();
+ startTime=Date.now();
  startTimer();
 }
 
 function updateUI(){
- document.getElementById("progress").textContent=
-  retryMode?`錯題重練 ${idx}/${total}`:`第 ${idx}/${total} 題`;
+ document.getElementById("progress").textContent=`第 ${idx} / ${total} 題`;
  document.getElementById("question").textContent=`${a} × ${b} = ?`;
- document.getElementById("timer").textContent=timer;
- drawKeys();
+ updateAnswer();
 }
 
 function startTimer(){
- clearInterval(tId);
- tId=setInterval(()=>{
-  timer--;
-  document.getElementById("timer").textContent=timer;
-  beep(700,0.05);          // ⏱️ 每秒滴聲
-  if(timer<=0){
+ clearInterval(timer);
+ sec=8;
+ document.getElementById("timer").textContent=`剩餘 ${sec} 秒`;
+ timer=setInterval(()=>{
+  sec--;
+  beep(600,0.05);
+  document.getElementById("timer").textContent=`剩餘 ${sec} 秒`;
+  if(sec<=0){
+   clearInterval(timer);
    recordWrong();
-   wrongSound();
-   clearInterval(tId);
-   setTimeout(nextQ,500);
   }
  },1000);
 }
 
-function drawKeys(){
- const k=document.getElementById("keypad");
- k.innerHTML="";
- for(let i=0;i<=9;i++){
-  const btn=document.createElement("button");
-  btn.textContent=i;
-  btn.onclick=()=>answer+=i;
-  k.appendChild(btn);
- }
- const del=document.createElement("button");
- del.textContent="⌫";
- del.onclick=()=>answer=answer.slice(0,-1);
- k.appendChild(del);
- const ok=document.createElement("button");
- ok.textContent="OK";
- ok.onclick=check;
- k.appendChild(ok);
-}
-
-function check(){
+function submit(){
  if(answer==="")return;
- clearInterval(tId);
+ clearInterval(timer);
+ const used=(Date.now()-startTime)/1000;
  if(Number(answer)===a*b){
   correct++;
-  correctTimes.push((Date.now()-startTime)/1000);
-  correctSound();
+  times.push(used);
+  beep(1000,0.12); setTimeout(()=>beep(1200,0.12),150);
+  next();
  }else{
   recordWrong();
-  wrongSound();
  }
- setTimeout(nextQ,400);
 }
 
 function recordWrong(){
+ speak("答錯了");
  wrongDetails.push(`${a} × ${b} = ${a*b}`);
- if(!retryMode) wrongQuestions.push({a,b});
+ wrongQuestions.push({a:a,b:b});
+ document.getElementById("reveal").textContent=`正確答案：${a*b}`;
+ document.getElementById("reveal").style.display="block";
+ setTimeout(next,3200);
 }
 
 function finish(){
+ clearInterval(timer);
+ speak("恭喜你完成測驗");
  document.getElementById("exam").classList.add("hidden");
- document.getElementById("result").classList.remove("hidden");
+ document.getElementById("score").classList.remove("hidden");
 
- document.getElementById("correctCount").textContent=correct+" 題";
- document.getElementById("wrongCount").textContent=(total-correct)+" 題";
+ const avg=times.length?(times.reduce((a,b)=>a+b)/times.length).toFixed(1):0;
+ document.getElementById("scoreText").textContent=`答對 ${correct} / ${total} 題`;
+ document.getElementById("avgTime").textContent=`平均作答時間：${avg} 秒`;
+ document.getElementById("wrongCount").textContent=`錯誤題數：${wrongDetails.length}`;
 
- const avg=correctTimes.length
- ?(correctTimes.reduce((x,y)=>x+y)/correctTimes.length).toFixed(1)
- :0;
- document.getElementById("avgTime").textContent=avg+" 秒";
+ let wl=document.getElementById("wrongList");
+ wl.innerHTML=wrongDetails.map(x=>`<div>${x}</div>`).join("");
 
- document.getElementById("detailList").innerHTML=
-  wrongDetails.length
-  ?wrongDetails.map(x=>`<div>${x}</div>`).join("")
-  :"沒有錯誤 🎉";
-
- if(wrongQuestions.length>0 && !retryMode){
-  document.getElementById("retryBtn").style.display="block";
-  document.getElementById("retryBtn").textContent=
-   `錯題重練（${wrongQuestions.length} 題）`;
+ if(wrongQuestions.length){
+  const r=document.getElementById("retryBtn");
+  r.style.display="block";
+  r.textContent=`錯題重練（${wrongQuestions.length} 題）`;
  }
-}
-
-let detailOpen=false;
-function toggleDetail(){
- detailOpen=!detailOpen;
- document.getElementById("detailBox").classList.toggle("open",detailOpen);
- document.getElementById("detailBtn").textContent=
-  detailOpen?"收起錯誤明細 ▲":"查看錯誤明細 ▼";
 }
 
 function startRetry(){
  retryMode=true;
  retryList=[...wrongQuestions];
  shuffle(retryList);
- total=retryList.length;
- idx=0;correct=0;
- correctTimes=[];wrongDetails=[];
- document.getElementById("result").classList.add("hidden");
+ list=retryList;
+ total=list.length;
+ resetVars();
+ document.getElementById("score").classList.add("hidden");
  document.getElementById("exam").classList.remove("hidden");
- nextQ();
+ next();
 }
+
+function restart(){location.reload();}
 
 function shuffle(arr){
  for(let i=arr.length-1;i>0;i--){
@@ -324,7 +283,7 @@ function shuffle(arr){
  }
 }
 
-function restart(){location.reload();}
+drawKeys();
 </script>
 </body>
 </html>
