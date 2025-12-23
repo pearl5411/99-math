@@ -58,6 +58,12 @@ button{
  background:#ffd666;
 }
 button:active{background:#ffc53d;}
+
+.del{
+ background:#ffccc7;
+ color:#a8071a;
+}
+
 #startBtn{
  background:#52c41a;
  color:#fff;
@@ -120,7 +126,6 @@ button:active{background:#ffc53d;}
  <button id="startBtn">開始測驗</button>
 </div>
 
-<!-- 成績彈窗 -->
 <div id="overlay">
  <div id="resultBox"></div>
 </div>
@@ -168,6 +173,17 @@ let correct=0,wrong=0,totalTime=0,startTime=0;
  btn.onclick=()=>submit(n);
  padEl.appendChild(btn);
 });
+
+/* ===== 刪除鍵 ===== */
+const delBtn=document.createElement("button");
+delBtn.textContent="⌫";
+delBtn.className="del";
+delBtn.onclick=()=>{
+ if(answered||!running) return;
+ input=input.slice(0,-1);
+ aEl.textContent=input;
+};
+padEl.appendChild(delBtn);
 
 /* ===== 開始 ===== */
 startBtn.onclick=()=>{
