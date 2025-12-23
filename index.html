@@ -62,11 +62,45 @@ button:active{background:#ffb84d;}
 
 <div id="resultBox"></div>
 
-<audio id="beep" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA="></audio>
-<audio id="ding" src="data:audio/wav;base64,UklGRmQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YYAAAAA="></audio>
-
 <script>
-/* ===== DOM ===== */
+/* ========= Web Audio（iOS 穩定） ========= */
+let audioCtx = null;
+
+function initAudio(){
+ if(audioCtx) return;
+ audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+}
+
+function beep(freq=800, duration=0.08){
+ if(!audioCtx) return;
+ const o = audioCtx.createOscillator();
+ const g = audioCtx.createGain();
+ o.frequency.value = freq;
+ g.gain.value = 0.12;
+ o.connect(g); g.connect(audioCtx.destination);
+ o.start();
+ o.stop(audioCtx.currentTime + duration);
+}
+
+function ding(){
+ beep(1200,0.1);
+ setTimeout(()=>beep(1500,0.1),120);
+}
+
+function speak(text){
+ speechSynthesis.cancel();
+ speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+}
+
+/* ========= 狀態 ========= */
+let questions=[], wrongList=[];
+let index=0,a,b,answer;
+let sec=8,timerId;
+let answered=false,running=false;
+let token=0,inputBuffer="";
+let correct=0,wrong=0,totalCorrectTime=0,startTime=0;
+
+/* ========= DOM ========= */
 const qEl = document.getElementById("question");
 const tEl = document.getElementById("timer");
 const pEl = document.getElementById("progress");
@@ -76,51 +110,22 @@ const padEl = document.getElementById("pad");
 const resultBox = document.getElementById("resultBox");
 const startBtn = document.getElementById("startBtn");
 
-/* ===== 狀態 ===== */
-let questions=[], wrongList=[];
-let index=0, a=0, b=0, answer=0;
-let sec=8, timerId=null;
-let answered=false, running=false;
-let token=0, inputBuffer="";
-let correct=0, wrong=0;
-let totalCorrectTime=0, startTime=0;
-let audioUnlocked=false;
-
-/* ===== 建立數字鍵 ===== */
-for(let i=1;i<=9;i++){
+/* ========= 數字鍵（含 0） ========= */
+[1,2,3,4,5,6,7,8,9,0].forEach(n=>{
  const btn=document.createElement("button");
- btn.textContent=i;
- btn.onclick=()=>submit(i);
+ btn.textContent=n;
+ btn.onclick=()=>submit(n);
  padEl.appendChild(btn);
-}
+});
 
-/* ===== 音效（安全播放） ===== */
-function safePlay(id){
- if(!audioUnlocked) return;
- const a=document.getElementById(id);
- a.currentTime=0;
- a.play().catch(()=>{});
-}
-function speak(text){
- if(!audioUnlocked) return;
- speechSynthesis.cancel();
- speechSynthesis.speak(new SpeechSynthesisUtterance(text));
-}
-
-/* ===== 解鎖音效（iPhone 必須） ===== */
-function unlockAudio(){
- if(audioUnlocked) return;
- audioUnlocked=true;
- document.getElementById("beep").play().catch(()=>{});
- document.getElementById("ding").play().catch(()=>{});
-}
-
-/* ===== 開始測驗 ===== */
+/* ========= 開始 ========= */
 startBtn.onclick=()=>{
- unlockAudio();
- if(running) return;
+ initAudio();        // 🔓 解鎖聲音
+ beep(1,0.01);       // iOS 必須的第一次聲音
 
+ if(running) return;
  running=true;
+
  questions=[]; wrongList=[];
  correct=wrong=totalCorrectTime=0;
  index=0;
@@ -136,7 +141,7 @@ startBtn.onclick=()=>{
  next();
 };
 
-/* ===== 下一題 ===== */
+/* ========= 下一題 ========= */
 function next(){
  clearInterval(timerId);
  answered=false;
@@ -160,14 +165,14 @@ function next(){
  startTimer(token);
 }
 
-/* ===== 計時 ===== */
+/* ========= 計時 ========= */
 function startTimer(myToken){
  sec=8;
  tEl.textContent=`剩 ${sec} 秒`;
  timerId=setInterval(()=>{
   if(myToken!==token) return;
   sec--;
-  safePlay("beep");
+  beep(700,0.05);   // 🔔 計時聲
   tEl.textContent=`剩 ${sec} 秒`;
 
   if(sec<=0){
@@ -184,7 +189,7 @@ function startTimer(myToken){
  },1000);
 }
 
-/* ===== 作答 ===== */
+/* ========= 作答 ========= */
 function submit(n){
  if(answered||!running) return;
 
@@ -199,7 +204,7 @@ function submit(n){
  if(Number(inputBuffer)===answer){
   correct++;
   totalCorrectTime+=(Date.now()-startTime)/1000;
-  safePlay("ding"); safePlay("ding");
+  ding();            // ✅ 答對音
  }else{
   wrong++;
   wrongList.push({a,b,answer,user:Number(inputBuffer)});
@@ -211,7 +216,7 @@ function submit(n){
  setTimeout(()=>{index++;next();},2000);
 }
 
-/* ===== 結束 ===== */
+/* ========= 結束 ========= */
 function finish(){
  running=false;
  speak("恭喜你完成測驗");
