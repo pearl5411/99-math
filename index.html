@@ -16,15 +16,10 @@ body{
  touch-action:manipulation;
 }
 .hidden{display:none}
-
 h1{margin:12px 0}
 
 #question{font-size:34px;margin:10px 0}
-#answer{
- font-size:36px;
- min-height:44px;
- margin:6px 0;
-}
+#answer{font-size:36px;min-height:44px;margin:6px 0}
 #timer{font-size:18px;color:#555}
 #progress{margin-top:6px}
 
@@ -105,7 +100,7 @@ h1{margin:12px 0}
 </div>
 
 <script>
-/* ===== 音效（最穩定） ===== */
+/* ===== 音效（穩定） ===== */
 let audioCtx=null;
 function unlockAudio(){
  if(!audioCtx){
@@ -134,9 +129,11 @@ function speak(txt){
 let questions=[],wrongQ=[],wrongText=[];
 let idx=0,total=30,a=0,b=0;
 let answer="",sec=8;
-let timerId=null,locked=false;
+let timerId=null;
 let correct=0,times=[];
-let startTime=0,retry=false;
+let startTime=0;
+let answered=false;   // ★ 本題是否已結算
+let locked=false;
 
 /* ===== 鍵盤 ===== */
 function buildKeys(){
@@ -145,7 +142,7 @@ function buildKeys(){
  for(let i=1;i<=9;i++) addKey(i);
  addKey(0);
  addBtn("⌫","del",()=>{
-  if(locked)return;
+  if(locked) return;
   answer=answer.slice(0,-1);
   updateAnswer();
  });
@@ -153,7 +150,7 @@ function buildKeys(){
 }
 function addKey(n){
  addBtn(n,"",()=>{
-  if(locked)return;
+  if(locked) return;
   answer+=n;
   updateAnswer();
  });
@@ -161,7 +158,7 @@ function addKey(n){
 function addBtn(txt,cls,fn){
  const b=document.createElement("button");
  b.textContent=txt;
- if(cls)b.className=cls;
+ if(cls) b.className=cls;
  b.onclick=fn;
  document.getElementById("keys").appendChild(b);
 }
@@ -172,7 +169,7 @@ function updateAnswer(){
 /* ===== 開始 ===== */
 function startExam(){
  unlockAudio();
- document.getElementById("start").remove(); // ★關鍵
+ document.getElementById("start").remove(); // 關鍵：移除圖層
  document.getElementById("exam").classList.remove("hidden");
  generate();
  next();
@@ -191,16 +188,23 @@ function generate(){
 }
 function next(){
  clearTimer();
+ answered=false;
  locked=false;
  document.getElementById("reveal").style.display="none";
- if(idx>=questions.length){finish();return;}
+
+ if(idx>=questions.length){
+  finish();
+  return;
+ }
  const q=questions[idx];
  a=q.a; b=q.b;
  idx++;
+
  answer="";
  updateAnswer();
  document.getElementById("question").textContent=`${a} × ${b} = ?`;
  document.getElementById("progress").textContent=`第 ${idx} / ${questions.length} 題`;
+
  startTime=Date.now();
  startTimer();
 }
@@ -215,19 +219,27 @@ function startTimer(){
   document.getElementById("timer").textContent=`剩餘 ${sec} 秒`;
   if(sec<=0){
    clearTimer();
+   if(answered) return;
+   answered=true;
    recordWrong();
   }
  },1000);
 }
 function clearTimer(){
- if(timerId){clearInterval(timerId);timerId=null;}
+ if(timerId){
+  clearInterval(timerId);
+  timerId=null;
+ }
 }
 
 /* ===== 作答 ===== */
 function submit(){
- if(locked||answer==="")return;
+ if(answered || locked || answer==="") return;
+
+ answered=true;
  locked=true;
  clearTimer();
+
  const used=(Date.now()-startTime)/1000;
  if(Number(answer)===a*b){
   correct++;
@@ -238,6 +250,7 @@ function submit(){
   recordWrong();
  }
 }
+
 function recordWrong(){
  speak("答錯了");
  wrongQ.push({a,b});
@@ -253,11 +266,17 @@ function finish(){
  speak("恭喜你完成測驗");
  document.getElementById("exam").classList.add("hidden");
  document.getElementById("score").classList.remove("hidden");
- const avg=times.length?(times.reduce((x,y)=>x+y)/times.length).toFixed(1):0;
+
+ const avg=times.length
+  ? (times.reduce((x,y)=>x+y)/times.length).toFixed(1)
+  : 0;
+
  document.getElementById("scoreText").textContent=`答對 ${correct} / ${questions.length} 題`;
  document.getElementById("avgTime").textContent=`平均作答時間：${avg} 秒`;
  document.getElementById("wrongCount").textContent=`錯誤題數：${wrongText.length}`;
- document.getElementById("wrongList").innerHTML=wrongText.map(x=>`<div>${x}</div>`).join("");
+ document.getElementById("wrongList").innerHTML =
+  wrongText.map(x=>`<div>${x}</div>`).join("");
+
  if(wrongQ.length){
   document.getElementById("retryBtn").style.display="block";
  }
@@ -265,7 +284,6 @@ function finish(){
 
 /* ===== 錯題重練 ===== */
 function startRetry(){
- retry=true;
  questions=[...wrongQ];
  wrongQ=[]; wrongText=[];
  idx=0; correct=0; times=[];
