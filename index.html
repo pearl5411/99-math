@@ -22,10 +22,15 @@ h1{color:#ff7043}
   box-shadow:0 4px 12px rgba(0,0,0,.15);
 }
 
+#progress{
+  font-size:18px;
+  color:#8d6e63;
+  margin-bottom:4px;
+}
 #question{font-size:34px}
 #timer{font-size:22px;color:#d84315}
 
-/* 🔹 答案框 */
+/* 答案框 */
 #answerWrap{
   position:relative;
   width:120px;
@@ -41,7 +46,7 @@ h1{color:#ff7043}
   background:#fff;
 }
 
-/* 😭 哭臉在答案框左右 */
+/* 哭臉 */
 .cry{
   position:absolute;
   top:50%;
@@ -66,6 +71,7 @@ h1{color:#ff7043}
   min-height:26px;
 }
 
+/* 鍵盤 */
 .keypad{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -91,14 +97,13 @@ h1{color:#ff7043}
   align-items:center;
 }
 
-/* 🎀 成績單（粉嫩貼紙感） */
+/* 成績單（粉嫩貼紙感） */
 .resultCard{
   background:#fffdf7;
   border-radius:28px;
   padding:22px;
   width:90%;
   max-width:360px;
-
   border:4px dashed #ffb6c1;
   box-shadow:
     0 6px 0 #ffd1dc,
@@ -113,16 +118,13 @@ h1{color:#ff7043}
   gap:12px;
   margin-bottom:6px;
 }
-.cuteHeader .decor{
-  font-size:30px;
-}
+.cuteHeader .decor{font-size:30px}
 .cuteHeader .title{
   font-size:32px;
   font-weight:bold;
   color:#ff6f61;
 }
 
-/* 成績列置中 */
 .scoreRow{
   text-align:center;
   font-size:22px;
@@ -152,29 +154,6 @@ h1{color:#ff7043}
   font-size:20px;
   margin-bottom:6px;
 }
-
-/* ⭐ 星星爆開動畫 */
-#starBurst{
-  position:fixed;
-  left:50%;
-  top:45%;
-  transform:translate(-50%,-50%);
-  pointer-events:none;
-  z-index:9999;
-}
-.star{
-  position:absolute;
-  font-size:28px;
-  animation:starFly 1.2s ease-out forwards;
-}
-@keyframes starFly{
-  0%{opacity:0;transform:scale(.4)}
-  20%{opacity:1}
-  100%{
-    opacity:0;
-    transform:translate(var(--x),var(--y)) scale(1.2) rotate(360deg);
-  }
-}
 </style>
 </head>
 
@@ -186,6 +165,7 @@ h1{color:#ff7043}
 </div>
 
 <div class="card" id="quizCard" style="display:none">
+  <div id="progress"></div>
   <div id="question"></div>
   <div id="timer"></div>
 
@@ -202,8 +182,6 @@ h1{color:#ff7043}
 <div class="overlay" id="resultOverlay">
   <div class="resultCard" id="resultCard"></div>
 </div>
-
-<div id="starBurst"></div>
 
 <script>
 let audioCtx;
@@ -238,21 +216,6 @@ function showCry(){
     c.classList.add("showCry");
   });
 }
-function showStars(){
-  const box=document.getElementById("starBurst");
-  box.innerHTML="";
-  ["⭐","✨","🌟"].forEach(ch=>{
-    for(let i=0;i<5;i++){
-      const s=document.createElement("div");
-      s.className="star";
-      s.textContent=ch;
-      s.style.setProperty("--x",`${Math.random()*300-150}px`);
-      s.style.setProperty("--y",`${Math.random()*300-150}px`);
-      box.appendChild(s);
-    }
-  });
-  setTimeout(()=>box.innerHTML="",1400);
-}
 
 let list=[],i=0,ans="",sec=8,timer;
 let wrong=[],correct=0,totalCorrectTime=0,qStartTime=0;
@@ -267,6 +230,7 @@ const hint=document.getElementById("correctHint");
 const pad=document.getElementById("pad");
 const overlay=document.getElementById("resultOverlay");
 const resultCard=document.getElementById("resultCard");
+const progress=document.getElementById("progress");
 
 ["1","2","3","4","5","6","7","8","9","del","0"].forEach(k=>{
   const b=document.createElement("button");
@@ -276,8 +240,8 @@ const resultCard=document.getElementById("resultCard");
 });
 
 startBtn.onclick=()=>{
-  initAudio();beep(200,.05);
-  list=Array.from({length:20},()=>({
+  initAudio();
+  list=Array.from({length:30},()=>({
     a:1+Math.floor(Math.random()*9),
     b:1+Math.floor(Math.random()*9)
   }));
@@ -292,6 +256,7 @@ function next(){
   ans="";aEl.textContent="";hint.textContent="";
   if(i>=list.length)return finish();
   const q=list[i];
+  progress.textContent=`第 ${i+1} / ${list.length} 題`;
   qEl.textContent=`${q.a} × ${q.b} = ?`;
   sec=8;tEl.textContent=`⏱ ${sec}`;
   qStartTime=Date.now();
@@ -350,8 +315,8 @@ function finish(){
     <div class="detail" id="detail">${html||"🎉 全對！"}</div>
   `;
   overlay.style.display="flex";
-  showStars();
 }
+
 function toggle(){
   const d=document.getElementById("detail");
   d.style.display=d.style.display==="none"?"block":"none";
