@@ -2,343 +2,271 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>99乘法考試</title>
 
 <style>
 body{
  margin:0;
  font-family:"Noto Sans TC",system-ui;
- background:#fff1f0;
+ background:#fff3e0;
  text-align:center;
 }
-#card{
- background:#fff;
- margin:12px auto;
+
+h1{color:#ff7043}
+
+.card{
+ background:white;
+ margin:16px;
  padding:16px;
- max-width:420px;
- border-radius:22px;
- box-shadow:0 8px 20px rgba(0,0,0,.15);
+ border-radius:20px;
+ box-shadow:0 4px 10px rgba(0,0,0,.15);
 }
-h1{color:#ff6f61;margin:6px 0;}
-#progress{font-size:18px;color:#555;}
-#timer{font-size:20px;color:#ff4d4f;margin:6px 0;}
-#question{font-size:38px;margin:10px 0;}
+
+#question{
+ font-size:32px;
+ margin:10px 0;
+}
+
+#timer{
+ font-size:22px;
+ color:#d84315;
+}
 
 #answerBox{
- width:80%;
- height:56px;
- margin:10px auto;
- border:3px dashed #91d5ff;
- border-radius:16px;
- background:#e6f7ff;
- font-size:36px;
- line-height:56px;
- color:#1890ff;
-}
-
-#reveal{
- display:none;
+ border:3px solid #ffccbc;
+ border-radius:12px;
  font-size:28px;
- color:#ff4d4f;
- margin-top:6px;
+ padding:10px;
+ width:140px;
+ margin:10px auto;
+ background:#fff;
 }
 
-#pad{
+.keypad{
  display:grid;
  grid-template-columns:repeat(3,1fr);
- gap:12px;
- margin-top:14px;
+ gap:10px;
+ max-width:260px;
+ margin:10px auto;
 }
-button{
+
+.keypad button{
  font-size:26px;
- padding:16px;
+ padding:14px;
  border:none;
- border-radius:18px;
- background:#ffd666;
-}
-button:active{background:#ffc53d;}
-.del{background:#ffccc7;color:#a8071a;}
-
-#startBtn{
- width:100%;
- margin-top:12px;
- background:#52c41a;
- color:#fff;
- font-size:24px;
- transition:transform .15s,background .15s;
-}
-#startBtn.confirm{
- background:#ffa940;
- transform:scale(.96);
+ border-radius:14px;
+ background:#ffab91;
 }
 
-/* 成績彈窗 */
-#overlay{
+.keypad button:active{
+ transform:scale(.95);
+}
+
+.controlBtn{
+ margin-top:10px;
+ font-size:20px;
+ padding:10px 20px;
+ border:none;
+ border-radius:14px;
+ background:#ff7043;
+ color:white;
+}
+
+.overlay{
  position:fixed;
  inset:0;
  background:rgba(0,0,0,.4);
  display:none;
- align-items:center;
  justify-content:center;
- pointer-events:none;
+ align-items:center;
 }
-#overlay.show{
- display:flex;
- pointer-events:auto;
-}
-#resultBox{
- background:#fff;
- border-radius:24px;
- padding:22px;
+
+.resultCard{
+ background:#fff7e6;
+ border-radius:22px;
+ padding:20px;
  width:90%;
- max-width:420px;
- animation:pop .3s ease;
+ max-width:360px;
 }
-@keyframes pop{
- from{transform:scale(.7);opacity:0;}
- to{transform:scale(1);opacity:1;}
+
+.resultHeader{
+ font-size:30px;
+ color:#ff6f61;
+ font-weight:bold;
 }
-.big{font-size:30px;font-weight:bold;color:#ff6f61;}
-.score{font-size:22px;margin:6px 0;}
-.detail{font-size:16px;color:#ff4d4f;}
+
+.scoreRow{
+ display:flex;
+ justify-content:space-between;
+ font-size:20px;
+ margin:6px 0;
+}
+
+.wrongList{
+ background:#fff1f0;
+ border-radius:14px;
+ padding:10px;
+ margin-top:10px;
+ text-align:left;
+ max-height:160px;
+ overflow:auto;
+}
+
+.wrongItem{color:#a8071a}
+
 .resultBtn{
  width:100%;
  margin-top:10px;
- font-size:22px;
- padding:12px;
- border-radius:16px;
+ font-size:20px;
+ padding:10px;
  border:none;
+ border-radius:14px;
 }
-.retry{background:#95de64;}
-.restart{background:#ffd666;}
+
+.retry{background:#52c41a;color:white}
+.restart{background:#1890ff;color:white}
 </style>
 </head>
 
 <body>
-<h1>99 乘法考試</h1>
 
-<div id="card">
- <div id="progress"></div>
- <div id="timer"></div>
- <div id="question">請按開始</div>
- <div id="answerBox"></div>
- <div id="reveal"></div>
- <div id="pad"></div>
- <button id="startBtn">開始測驗</button>
+<h1>99乘法考試</h1>
+
+<div class="card" id="startCard">
+ <button class="controlBtn" id="startBtn">▶ 開始測驗</button>
 </div>
 
-<div id="overlay">
- <div id="resultBox"></div>
+<div class="card" id="quizCard" style="display:none">
+ <div id="progress"></div>
+ <div id="question"></div>
+ <div id="timer"></div>
+ <div id="answerBox"></div>
+
+ <div class="keypad">
+  <button onclick="press('1')">1</button>
+  <button onclick="press('2')">2</button>
+  <button onclick="press('3')">3</button>
+  <button onclick="press('4')">4</button>
+  <button onclick="press('5')">5</button>
+  <button onclick="press('6')">6</button>
+  <button onclick="press('7')">7</button>
+  <button onclick="press('8')">8</button>
+  <button onclick="press('9')">9</button>
+  <button onclick="del()">⌫</button>
+  <button onclick="press('0')">0</button>
+  <button onclick="submit()">完成</button>
+ </div>
+</div>
+
+<div class="overlay" id="resultOverlay">
+ <div class="resultCard" id="resultCard"></div>
 </div>
 
 <script>
-/* ========= Audio ========= */
-let audioCtx=null;
-function initAudio(){
- if(audioCtx) return;
- audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-}
-function beep(f=800,d=0.06){
- if(!audioCtx) return;
- const o=audioCtx.createOscillator();
- const g=audioCtx.createGain();
- o.frequency.value=f;
- g.gain.value=0.12;
- o.connect(g); g.connect(audioCtx.destination);
- o.start(); o.stop(audioCtx.currentTime+d);
-}
-function ding(){
- beep(1200,.1);
- setTimeout(()=>beep(1500,.1),120);
-}
-function speak(t){
- speechSynthesis.cancel();
- speechSynthesis.speak(new SpeechSynthesisUtterance(t));
+let q=[],idx=0,ans="",timer,sec;
+let correct=0,wrong=0;
+let correctTimes=[];
+let wrongDetail=[];
+let audioOK,audioWrong,audioEnd,tick;
+
+function unlockAudio(){
+ audioOK=new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+ audioWrong=new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+ audioEnd=new Audio("https://actions.google.com/sounds/v1/cartoon/ta_da.ogg");
+ tick=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 }
 
-/* ========= DOM（⚠️ 關鍵修正） ========= */
-const qEl = document.getElementById("question");
-const tEl = document.getElementById("timer");
-const pEl = document.getElementById("progress");
-const aEl = document.getElementById("answerBox");
-const rEl = document.getElementById("reveal");
-const padEl = document.getElementById("pad");
-const startBtn = document.getElementById("startBtn");
-const overlay = document.getElementById("overlay");
-const resultBox = document.getElementById("resultBox");
-
-/* ========= State ========= */
-let questions=[], wrongList=[];
-let index=0,a,b,answer;
-let sec=8,timerId,token=0;
-let input="",answered=false,running=false;
-let correct=0,wrong=0,totalTime=0,startTime=0;
-
-/* ========= Keypad ========= */
-[1,2,3,4,5,6,7,8,9,0].forEach(n=>{
- const btn=document.createElement("button");
- btn.textContent=n;
- btn.onclick=()=>submit(n);
- padEl.appendChild(btn);
-});
-const del=document.createElement("button");
-del.textContent="⌫";
-del.className="del";
-del.onclick=()=>{
- if(!answered && running){
-  input=input.slice(0,-1);
-  aEl.textContent=input;
- }
+document.getElementById("startBtn").onclick=()=>{
+ unlockAudio();
+ start();
 };
-padEl.appendChild(del);
 
-/* ========= Start Button（雙按防誤觸） ========= */
-let startConfirm=false, confirmTimer=null;
-startBtn.onclick=()=>{
- initAudio();
- beep(1,.01);
-
- if(running) return;
-
- if(!startConfirm){
-  startConfirm=true;
-  startBtn.textContent="再按一次開始";
-  startBtn.classList.add("confirm");
-  confirmTimer=setTimeout(()=>{
-    startConfirm=false;
-    startBtn.textContent="開始測驗";
-    startBtn.classList.remove("confirm");
-  },2000);
-  return;
- }
-
- clearTimeout(confirmTimer);
- startConfirm=false;
- startBtn.textContent="開始測驗";
- startBtn.classList.remove("confirm");
-
- overlay.classList.remove("show");
- running=true;
-
- questions=[]; wrongList=[];
- correct=wrong=totalTime=0;
- index=0;
- for(let i=0;i<30;i++)
-  questions.push({a:rand(),b:rand()});
-
+function start(list){
+ q=list||Array.from({length:30},()=> {
+  let a=1+Math.floor(Math.random()*9);
+  let b=1+Math.floor(Math.random()*9);
+  return {a,b};
+ });
+ idx=0;correct=0;wrong=0;
+ wrongDetail=[];correctTimes=[];
+ document.getElementById("startCard").style.display="none";
+ document.getElementById("quizCard").style.display="block";
  next();
-};
-
-function rand(){return Math.floor(Math.random()*9)+1;}
-
-/* ========= Next ========= */
-function next(){
- clearInterval(timerId);
- answered=false;
- input="";
- aEl.textContent="";
- rEl.style.display="none";
- token++;
-
- if(index>=questions.length){
-  finish();
-  return;
- }
-
- ({a,b}=questions[index]);
- answer=a*b;
- startTime=Date.now();
-
- pEl.textContent=`第 ${index+1} / ${questions.length} 題`;
- qEl.textContent=`${a} × ${b} = ?`;
-
- startTimer(token);
 }
 
-/* ========= Timer ========= */
-function startTimer(tk){
+function next(){
+ if(idx>=q.length){finish();return;}
+ ans="";
+ document.getElementById("answerBox").innerText="";
+ let {a,b}=q[idx];
+ document.getElementById("question").innerText=`${a} × ${b} = ?`;
+ document.getElementById("progress").innerText=`第 ${idx+1} / ${q.length} 題`;
  sec=8;
- tEl.textContent=`剩 ${sec} 秒`;
- timerId=setInterval(()=>{
-  if(tk!==token) return;
+ document.getElementById("timer").innerText=`⏱ ${sec}`;
+ clearInterval(timer);
+ timer=setInterval(()=>{
   sec--;
-  beep();
-  tEl.textContent=`剩 ${sec} 秒`;
-  if(sec<=0){
-   clearInterval(timerId);
-   if(answered) return;
-   answered=true;
-   wrong++;
-   wrongList.push({a,b,answer,user:null});
-   rEl.textContent=`${a} × ${b} = ${answer}`;
-   rEl.style.display="block";
-   speak("答錯了");
-   setTimeout(()=>{index++;next();},2000);
-  }
+  tick.currentTime=0;tick.play();
+  document.getElementById("timer").innerText=`⏱ ${sec}`;
+  if(sec<=0){clearInterval(timer);mark(false);}
  },1000);
 }
 
-/* ========= Submit ========= */
-function submit(n){
- if(answered || !running) return;
+function press(n){
+ if(ans.length>=3)return;
+ ans+=n;
+ document.getElementById("answerBox").innerText=ans;
+}
 
- input+=n;
- aEl.textContent=input;
+function del(){
+ ans=ans.slice(0,-1);
+ document.getElementById("answerBox").innerText=ans;
+}
 
- if(input.length < String(answer).length) return;
+function submit(){
+ if(ans==="")return;
+ let {a,b}=q[idx];
+ mark(Number(ans)===a*b);
+}
 
- answered=true;
- clearInterval(timerId);
-
- if(Number(input)===answer){
+function mark(ok){
+ clearInterval(timer);
+ let {a,b}=q[idx];
+ if(ok){
   correct++;
-  totalTime+=(Date.now()-startTime)/1000;
-  ding();
+  correctTimes.push(8-sec);
+  audioOK.currentTime=0;audioOK.play();
  }else{
   wrong++;
-  wrongList.push({a,b,answer,user:Number(input)});
-  rEl.textContent=`${a} × ${b} = ${answer}`;
-  rEl.style.display="block";
-  speak("答錯了");
+  wrongDetail.push(`${a}×${b}=${a*b}`);
+  audioWrong.currentTime=0;audioWrong.play();
  }
-
- setTimeout(()=>{index++;next();},2000);
+ idx++;
+ setTimeout(next,800);
 }
 
-/* ========= Finish ========= */
 function finish(){
- running=false;
- speak("恭喜你完成測驗");
+ audioEnd.play();
+ let avg=correctTimes.length?
+ (correctTimes.reduce((a,b)=>a+b)/correctTimes.length).toFixed(1):0;
+ document.getElementById("quizCard").style.display="none";
+ document.getElementById("resultOverlay").style.display="flex";
+ document.getElementById("resultCard").innerHTML=`
+  <div class="resultHeader">📘 成績單</div>
+  <div class="scoreRow"><span>✔ 答對</span><span>${correct}</span></div>
+  <div class="scoreRow"><span>✖ 答錯</span><span>${wrong}</span></div>
+  <div class="scoreRow"><span>⏱ 平均時間</span><span>${avg} 秒</span></div>
 
- const avg=correct?(totalTime/correct).toFixed(1):0;
- let detail="";
- wrongList.forEach(q=>{
-  detail+=`<div class="detail">${q.a}×${q.b}＝${q.answer}（你答：${q.user??"未答"}）</div>`;
- });
+  <button class="resultBtn retry" onclick="start(q.filter((_,i)=>wrongDetail.includes(q[i].a+'×'+q[i].b+'='+(q[i].a*q[i].b))))">🔁 錯題重練</button>
+  <button class="resultBtn restart" onclick="location.reload()">📝 重新測驗</button>
 
- resultBox.innerHTML=`
-  <div class="big">測驗完成 🎉</div>
-  <div class="score">✔ 答對：${correct} 題</div>
-  <div class="score">✖ 答錯：${wrong} 題</div>
-  <div class="score">⏱ 平均時間：${avg} 秒</div>
-  <button class="resultBtn retry" onclick="retryWrong()">錯題重練</button>
-  <button class="resultBtn restart" onclick="location.reload()">重新測驗</button>
-  ${detail}
+  <div class="wrongList">
+   ${wrongDetail.map(w=>`<div class="wrongItem">❌ ${w}</div>`).join("")||"🎉 全對！"}
+  </div>
  `;
- overlay.classList.add("show");
-}
-
-function retryWrong(){
- if(wrongList.length===0) return;
- questions=wrongList.map(q=>({a:q.a,b:q.b}));
- wrongList=[];
- index=0;
- correct=wrong=totalTime=0;
- overlay.classList.remove("show");
- running=true;
- next();
 }
 </script>
+
 </body>
 </html>
