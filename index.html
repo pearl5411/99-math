@@ -1,40 +1,166 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>99乘法考試 - 修正版</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>99乘法測驗</title>
+
 <style>
-body{margin:0;font-family:"Noto Sans TC",system-ui;background:#fff3e0;text-align:center}
-h1{color:#ff7043;margin:12px 0}
-.card{background:#fff;margin:16px;padding:16px;border-radius:22px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
-#question{font-size:34px;margin:10px 0}
+body{
+  margin:0;
+  font-family:"Noto Sans TC",system-ui;
+  background:#fff3e0;
+  text-align:center;
+}
+h1{color:#ff7043}
+
+.card{
+  background:#fff;
+  margin:16px;
+  padding:16px;
+  border-radius:24px;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+
+#question{font-size:34px}
 #timer{font-size:22px;color:#d84315}
-#answerBox{border:4px solid #ffccbc;border-radius:14px;font-size:32px;padding:10px;width:160px;margin:12px auto;background:#fff;min-height:40px;color:#1890ff}
-.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:10px auto}
-.keypad button{font-size:26px;padding:14px;border:none;border-radius:16px;background:#ffab91}
-.keypad button:active{transform:scale(.95)}
-.controlBtn{font-size:22px;padding:12px 26px;border:none;border-radius:18px;background:#ff7043;color:white}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;justify-content:center;align-items:center}
-.resultCard{background:linear-gradient(180deg,#fffdf7,#fff4e6);border-radius:26px;padding:20px;width:90%;max-width:360px;position:relative}
-.resultCard::before{content:"⭐";position:absolute;top:-14px;left:-10px;font-size:36px}
-.resultCard::after{content:"🎀";position:absolute;top:-16px;right:-8px;font-size:34px}
-.resultHeader{font-size:32px;color:#ff6f61;font-weight:bold}
-.scoreRow{display:flex;justify-content:space-between;background:#fff;border-radius:14px;padding:8px 14px;margin:8px 0;font-size:20px}
-.scoreRow span:last-child{font-size:24px;color:#fa541c}
-.avgTime{font-size:18px;color:#9254de;margin:10px 0}
-.resultBtn{width:100%;margin-top:10px;font-size:20px;padding:10px;border:none;border-radius:16px}
+
+#answerBox{
+  border:4px solid #ffccbc;
+  border-radius:16px;
+  font-size:34px;
+  padding:10px;
+  width:160px;
+  margin:12px auto 6px;
+  min-height:42px;
+  color:#1890ff;
+}
+
+#correctHint{
+  font-size:20px;
+  color:#d32f2f;
+  min-height:26px;
+}
+
+.keypad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  max-width:260px;
+  margin:12px auto;
+}
+.keypad button{
+  font-size:26px;
+  padding:14px;
+  border:none;
+  border-radius:16px;
+  background:#ffab91;
+}
+
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.resultCard{
+  background:#fffdf7;
+  border-radius:26px;
+  padding:20px;
+  width:90%;
+  max-width:360px;
+}
+
+.resultHeader{
+  font-size:32px;
+  color:#ff6f61;
+  margin-bottom:10px;
+}
+
+.scoreRow{
+  display:flex;
+  justify-content:space-between;
+  font-size:22px;
+  margin:6px 0;
+}
+
+.resultBtn{
+  width:100%;
+  margin-top:10px;
+  font-size:20px;
+  padding:10px;
+  border:none;
+  border-radius:16px;
+}
+
 .retry{background:#52c41a;color:white}
 .restart{background:#1890ff;color:white}
-.wrongList{background:#fff1f0;border-radius:16px;padding:10px;margin-top:10px;max-height:160px;overflow:auto;text-align:left}
-.wrongItem{color:#a8071a;margin-bottom:4px}
+
+.detail{
+  background:#fff1f0;
+  border-radius:14px;
+  padding:10px;
+  margin-top:10px;
+  text-align:left;
+  display:none;
+}
+.detailItem{
+  font-size:20px;
+  margin-bottom:6px;
+}
+
+/* 😭 哭臉動畫 */
+#cryFace{
+  position:fixed;
+  left:50%;
+  top:40%;
+  transform:translate(-50%,-50%);
+  font-size:80px;
+  opacity:0;
+  pointer-events:none;
+  z-index:9999;
+}
+@keyframes cryAnim{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  20%{opacity:1;transform:translate(-50%,-50%) scale(1.1) rotate(-10deg)}
+  60%{transform:translate(-50%,-50%) rotate(10deg)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
+}
+.showCry{animation:cryAnim 1.2s}
+
+/* ⭐ 星星爆開 */
+#starBurst{
+  position:fixed;
+  left:50%;
+  top:45%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  z-index:9999;
+}
+.star{
+  position:absolute;
+  font-size:28px;
+  animation:starFly 1.2s ease-out forwards;
+}
+@keyframes starFly{
+  0%{opacity:0;transform:translate(0,0) scale(.4)}
+  20%{opacity:1}
+  100%{
+    opacity:0;
+    transform:translate(var(--x),var(--y)) scale(1.2) rotate(360deg);
+  }
+}
 </style>
 </head>
+
 <body>
-<h1>99乘法考試</h1>
+<h1>99乘法測驗</h1>
 
 <div class="card" id="startCard">
-  <button class="controlBtn" id="startBtn">▶ 開始測驗</button>
+  <button class="resultBtn restart" id="startBtn">▶ 開始測驗</button>
 </div>
 
 <div class="card" id="quizCard" style="display:none">
@@ -42,248 +168,176 @@ h1{color:#ff7043;margin:12px 0}
   <div id="question"></div>
   <div id="timer"></div>
   <div id="answerBox"></div>
-
-  <div class="keypad" id="pad">
-    <!-- 按鍵由 script 建立 -->
-  </div>
+  <div id="correctHint"></div>
+  <div class="keypad" id="pad"></div>
 </div>
 
 <div class="overlay" id="resultOverlay">
   <div class="resultCard" id="resultCard"></div>
 </div>
 
+<div id="cryFace">😭</div>
+<div id="starBurst"></div>
+
 <script>
-/* ================= 音效：Web Audio API（穩定） ================= */
-let audioCtx = null;
+/* 音效 */
+let audioCtx;
 function initAudio(){
-  if(audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  // 確保 resumed on user gesture:
-  audioCtx.resume().catch(()=>{});
+  if(!audioCtx){
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    audioCtx.resume();
+  }
 }
-function beep(freq=800, duration=0.06, gain=0.12){
-  if(!audioCtx) return;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.frequency.value = freq;
-  g.gain.value = gain;
+function beep(f=800,t=.05){
+  if(!audioCtx)return;
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.frequency.value=f; g.gain.value=.12;
   o.connect(g); g.connect(audioCtx.destination);
   o.start();
-  g.gain.setValueAtTime(gain, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-  o.stop(audioCtx.currentTime + duration + 0.02);
+  g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+t);
+  o.stop(audioCtx.currentTime+t);
 }
-function ding(){
-  beep(1200,0.09,0.18);
-  setTimeout(()=>beep(1500,0.09,0.16),120);
-}
-function speak(text){
-  // use speechSynthesis for "答錯了" and end message
-  try{
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'zh-TW';
-    speechSynthesis.speak(u);
-  }catch(e){}
+function ding(){beep(1200,.08);setTimeout(()=>beep(1500,.08),120)}
+function speak(t){
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t);
+  u.lang="zh-TW";
+  speechSynthesis.speak(u);
 }
 
-/* ================= DOM（明確抓取） ================= */
-const startBtn = document.getElementById('startBtn');
-const startCard = document.getElementById('startCard');
-const quizCard = document.getElementById('quizCard');
-const progressEl = document.getElementById('progress');
-const questionEl = document.getElementById('question');
-const timerEl = document.getElementById('timer');
-const answerBox = document.getElementById('answerBox');
-const pad = document.getElementById('pad');
-const resultOverlay = document.getElementById('resultOverlay');
-const resultCard = document.getElementById('resultCard');
+/* 星星 */
+function showStars(){
+  const box=document.getElementById("starBurst");
+  box.innerHTML="";
+  ["⭐","✨","🌟"].forEach((ch,i)=>{
+    for(let j=0;j<5;j++){
+      const s=document.createElement("div");
+      s.className="star";
+      s.textContent=ch;
+      s.style.setProperty("--x",`${Math.random()*300-150}px`);
+      s.style.setProperty("--y",`${Math.random()*300-150}px`);
+      box.appendChild(s);
+    }
+  });
+  setTimeout(()=>box.innerHTML="",1400);
+}
 
-/* ================= 狀態 ================= */
-let q = [], idx = 0, ans = '', sec = 8, timerId = null;
-let correct = 0, wrong = 0, correctTimes = [], wrongDetail = [];
-let running = false;
+/* 哭臉 */
+function showCry(){
+  const c=document.getElementById("cryFace");
+  c.classList.remove("showCry");
+  void c.offsetWidth;
+  c.classList.add("showCry");
+}
 
-/* ================= 建鍵盤（含 0 與 刪除） ================= */
-const keys = ['1','2','3','4','5','6','7','8','9','del','0'];
-keys.forEach(k=>{
-  const btn = document.createElement('button');
-  if(k==='del'){ btn.textContent='⌫'; btn.className=''; btn.onclick = ()=>{ if(!running) return; if(ans.length>0) { ans = ans.slice(0,-1); renderAnswer(); } }; }
-  else { btn.textContent = k; btn.onclick = ()=>{ if(!running) return; press(k); }; }
-  pad.appendChild(btn);
+/* 狀態 */
+let list=[],i=0,ans="",sec=8,timer;
+let wrong=[],correct=0;
+
+/* DOM */
+const startBtn=document.getElementById("startBtn");
+const startCard=document.getElementById("startCard");
+const quizCard=document.getElementById("quizCard");
+const qEl=document.getElementById("question");
+const tEl=document.getElementById("timer");
+const aEl=document.getElementById("answerBox");
+const hint=document.getElementById("correctHint");
+const pad=document.getElementById("pad");
+const overlay=document.getElementById("resultOverlay");
+const resultCard=document.getElementById("resultCard");
+
+/* 鍵盤 */
+["1","2","3","4","5","6","7","8","9","del","0"].forEach(k=>{
+  const b=document.createElement("button");
+  b.textContent=k==="del"?"⌫":k;
+  b.onclick=()=>k==="del"?del():press(k);
+  pad.appendChild(b);
 });
-/* 右下空位（for grid symmetry） */
-const spacer = document.createElement('button'); spacer.disabled=true; spacer.style.visibility='hidden'; pad.appendChild(spacer);
 
-/* ================= 開始按鈕（解鎖音訊） ================= */
-startBtn.addEventListener('click', ()=>{
-  initAudio();
-  // 簡短聲響作為 unlock
-  beep(100,0.01,0.02);
-  if(running) return;
-  start();
-});
-
-/* ================= 流程函式 ================= */
-function start(list){
-  q = list || Array.from({length:30}, ()=>({a:1+Math.floor(Math.random()*9), b:1+Math.floor(Math.random()*9)}));
-  idx = 0; ans=''; sec=8;
-  correct = 0; wrong = 0; correctTimes=[]; wrongDetail=[];
-  running = true;
-  startCard.style.display = 'none';
-  quizCard.style.display = 'block';
+/* 開始 */
+startBtn.onclick=()=>{
+  initAudio();beep(200,.05);
+  list=Array.from({length:20},()=>({
+    a:1+Math.floor(Math.random()*9),
+    b:1+Math.floor(Math.random()*9)
+  }));
+  i=0;correct=0;wrong=[];
+  startCard.style.display="none";
+  quizCard.style.display="block";
   next();
-}
+};
 
 function next(){
-  clearInterval(timerId);
-  ans = '';
-  renderAnswer();
-  timerEl.textContent = '';
-  if(idx >= q.length){ finish(); return; }
-  const {a,b} = q[idx];
-  questionEl.textContent = `${a} × ${b} = ?`;
-  progressEl.textContent = `第 ${idx+1} / ${q.length} 題`;
-  sec = 8;
-  timerEl.textContent = `⏱ ${sec}`;
-  // start timer
-  const myToken = ++idx; // use idx as token (1-based)
-  // store start time (we'll compute used time as 8 - sec when correct)
-  const startTime = performance.now();
-  timerId = setInterval(()=>{
-    // if idx changed below, we must ignore (token check)
-    // but we used idx++ above to set current index; so we need another variable to track question index.
-  }, 0);
-  // Implement proper timer using closure:
-  const currentIndex = idx - 1; // zero-based index of current question
-  clearInterval(timerId);
-  timerId = setInterval(()=>{
-    // ensure still same question
-    if(currentIndex !== (idx - 1)) return;
-    sec--;
-    beep(700,0.05,0.08); // ticking
-    timerEl.textContent = `⏱ ${sec}`;
-    if(sec <= 0){
-      clearInterval(timerId);
-      // mark wrong due to timeout
-      handleMark(false);
-    }
+  clearInterval(timer);
+  ans="";aEl.textContent="";hint.textContent="";
+  if(i>=list.length)return finish();
+  const q=list[i];
+  qEl.textContent=`${q.a} × ${q.b} = ?`;
+  sec=8;tEl.textContent=`⏱ ${sec}`;
+  timer=setInterval(()=>{
+    sec--;beep(700);
+    tEl.textContent=`⏱ ${sec}`;
+    if(sec<=0)mark(false);
   },1000);
-  // store question start time for measuring correct time
-  q[currentIndex].__start = performance.now();
 }
 
-/* ================= 輸入 / 顯示 ================= */
-function renderAnswer(){
-  answerBox.textContent = ans || '';
-  // default color
-  answerBox.style.color = '#1890ff';
-  // if ans is showing correct-answer-display temporarily, we preserve color when set elsewhere
+function press(d){
+  if(ans.length>=2)return;
+  ans+=d;aEl.textContent=ans;
+  const q=list[i],c=q.a*q.b;
+  if((c<10&&ans.length===1)||(c>=10&&ans.length===2))
+    mark(Number(ans)===c);
 }
-
-function press(digit){
-  if(ans.length >= 2) return;
-  ans += digit;
-  renderAnswer();
-  // check whether to auto-judge
-  const cur = q[idx - 1]; // zero-based
-  const correctAns = cur.a * cur.b;
-  if(correctAns < 10 && ans.length === 1){
-    handleMark(Number(ans) === correctAns);
-  } else if(correctAns >= 10 && ans.length === 2){
-    handleMark(Number(ans) === correctAns);
-  }
-}
-
 function del(){
-  if(!running) return;
-  if(ans.length>0) ans = ans.slice(0,-1);
-  renderAnswer();
+  ans=ans.slice(0,-1);
+  aEl.textContent=ans;
 }
 
-/* ================= 判定與回饋 ================= */
-function handleMark(isCorrect){
-  // Prevent double-handling: clear timer and set running state for current question
-  clearInterval(timerId);
-
-  const curIndex = idx - 1;
-  const cur = q[curIndex];
-  const correctAns = cur.a * cur.b;
-
-  if(isCorrect){
-    correct++;
-    // compute used time (in seconds)
-    const usedMs = (performance.now() - (cur.__start || performance.now()));
-    const usedS = Math.max(0, (8 - Math.round((performance.now() - cur.__start)/1000))); // approximate; fallback
-    // better compute accurate used time:
-    const accurateUsed = ((performance.now() - cur.__start)/1000);
-    correctTimes.push(accurateUsed);
-    // play correct sound
-    ding();
-    // small delay before next
-    setTimeout(()=>{ next(); }, 300);
-  } else {
-    wrong++;
-    wrongDetail.push(`${cur.a} × ${cur.b} = ${correctAns}`);
-    // show correct answer visually in answerBox (red) for 1.2s
-    answerBox.textContent = `${correctAns}`;
-    answerBox.style.color = '#d32f2f';
-    // speak "答錯了"
-    speak('答錯了');
-    // short beep as error accent
-    beep(400,0.12,0.12);
-    setTimeout(()=>{ 
-      // clear display and continue
-      answerBox.textContent = '';
-      answerBox.style.color = '#1890ff';
-      next();
-    }, 1200);
+function mark(ok){
+  clearInterval(timer);
+  const q=list[i],c=q.a*q.b;
+  if(ok){
+    correct++;ding();i++;setTimeout(next,300);
+  }else{
+    showCry();
+    wrong.push(`${q.a} × ${q.b} = ${c}（你的答案：${ans||"未輸入"}）`);
+    hint.textContent=`正確答案：${c}`;
+    speak("答錯了");
+    i++;setTimeout(next,2000);
   }
 }
 
-/* ================= 結束 / 成績彈窗 ================= */
 function finish(){
-  running = false;
-  // speak finish
-  speak('恭喜你完成測驗');
-  // compute average based on correctTimes (seconds)
-  const avg = correctTimes.length ? (correctTimes.reduce((a,b)=>a+b,0)/correctTimes.length).toFixed(1) : 0;
-  quizCard.style.display = 'none';
-  // build detail HTML
-  let detailHTML = '';
-  if(wrongDetail.length === 0) detailHTML = '<div class="wrongItem">🎉 全對！</div>';
-  else detailHTML = wrongDetail.map(w => `<div class="wrongItem">❌ ${w}</div>`).join('');
-  resultCard.innerHTML = `
+  speak("恭喜你完成測驗");
+  quizCard.style.display="none";
+  let html=wrong.map(w=>`<div class="detailItem">${w}</div>`).join("");
+  resultCard.innerHTML=`
     <div class="resultHeader">📘 成績單</div>
-    <div class="scoreRow"><span>✔ 答對</span><span>${correct}</span></div>
-    <div class="scoreRow"><span>✖ 答錯</span><span>${wrong}</span></div>
-    <div class="avgTime">⏱ 平均作答時間 ${avg} 秒</div>
-    <button class="resultBtn retry" onclick="retryWrong()">🔁 錯題重練</button>
-    <button class="resultBtn restart" onclick="location.reload()">📝 重新測驗</button>
-    <div class="wrongList">${detailHTML}</div>
+    <div class="scoreRow"><span>答對</span><span>${correct}</span></div>
+    <div class="scoreRow"><span>答錯</span><span>${wrong.length}</span></div>
+    <button class="resultBtn retry" onclick="retry()">錯題重練</button>
+    <button class="resultBtn restart" onclick="location.reload()">重新測驗</button>
+    <button class="resultBtn" onclick="toggle()">查看錯誤明細</button>
+    <div class="detail" id="detail">${html||"🎉 全對！"}</div>
   `;
-  resultOverlay.style.display = 'flex';
+  overlay.style.display="flex";
+  showStars();
 }
-
-/* ================= 錯題重練 ================= */
-function retryWrong(){
-  if(wrongDetail.length === 0) return;
-  // reconstruct list from wrongDetail strings "a × b = c"
-  const list = wrongDetail.map(s=>{
-    const m = s.match(/(\d+)\s*×\s*(\d+)/);
-    return { a: Number(m[1]), b: Number(m[2]) };
+function toggle(){
+  const d=document.getElementById("detail");
+  d.style.display=d.style.display==="none"?"block":"none";
+}
+function retry(){
+  list=wrong.map(w=>{
+    const m=w.match(/(\d+)\s×\s(\d+)/);
+    return {a:+m[1],b:+m[2]};
   });
-  resultOverlay.style.display = 'none';
-  quizCard.style.display = 'block';
-  // reset and start with list
-  q = list;
-  idx = 0; ans=''; correct=0; wrong=0; correctTimes=[]; wrongDetail=[];
-  running = true;
+  i=0;wrong=[];correct=0;
+  overlay.style.display="none";
+  quizCard.style.display="block";
   next();
 }
-
-/* ================= helper: safety ================= */
-window.addEventListener('pagehide', ()=>{ clearInterval(timerId); });
 </script>
 </body>
 </html>
