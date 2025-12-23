@@ -18,18 +18,9 @@ body{
  padding:20px;
 }
 h1{color:#ff6fae;}
-.question{
- font-size:36px;
- margin:20px 0;
-}
-.timer{
- font-size:28px;
- color:#ff5252;
-}
-.progress{
- margin:10px;
- font-size:18px;
-}
+.question{font-size:36px;margin:20px 0;}
+.timer{font-size:28px;color:#ff5252;}
+.progress{font-size:18px;margin:10px;}
 .keypad{
  display:grid;
  grid-template-columns:repeat(3,1fr);
@@ -37,20 +28,15 @@ h1{color:#ff6fae;}
  margin-top:20px;
 }
 button{
- font-size:24px;
- padding:18px;
+ font-size:22px;
+ padding:16px;
  border:none;
  border-radius:14px;
  background:#fff;
  box-shadow:0 4px 8px rgba(0,0,0,.15);
 }
 button:active{transform:scale(.95);}
-.start-btn{
- background:#ff8fc7;
- color:#fff;
- font-size:26px;
-}
-.hidden{display:none;}
+.start-btn{background:#ff8fc7;color:#fff;font-size:26px;}
 
 .modal{
  position:fixed;
@@ -66,173 +52,82 @@ button:active{transform:scale(.95);}
  padding:20px;
  width:90%;
  max-width:400px;
- animation:pop .4s ease;
 }
-@keyframes pop{
- from{transform:scale(.7);opacity:0}
- to{transform:scale(1);opacity:1}
-}
-.score{
- font-size:28px;
- color:#ff6fae;
-}
-.avg{
- font-size:20px;
- margin:10px 0;
-}
-.detail{
- text-align:left;
- margin-top:15px;
- max-height:200px;
- overflow:auto;
-}
-.detail div{
- padding:6px;
-}
-.wrong{
- color:red;
- font-weight:bold;
-}
-.small-btn{
- margin-top:12px;
- font-size:18px;
- padding:10px;
- background:#e0f7ff;
-}
+.score{font-size:30px;color:#ff6fae;}
+.avg{font-size:20px;margin:10px 0;}
+.wrong{color:red;font-size:20px;margin:6px 0;}
 </style>
 </head>
 
 <body>
-<div class="container">
+<div class="container" id="main">
  <h1>99乘法考試</h1>
+ <button class="start-btn" onclick="start()">開始測驗</button>
+</div>
 
- <div id="start">
-  <button class="start-btn" onclick="startExam()">開始測驗</button>
- </div>
-
- <div id="exam" class="hidden">
-  <div class="progress" id="progress"></div>
-  <div class="timer" id="timer">8</div>
-  <div class="question" id="question"></div>
-  <div class="keypad" id="keypad"></div>
+<div class="modal" id="result" style="display:none">
+ <div class="card">
+  <div class="score" id="score"></div>
+  <div class="avg" id="avg"></div>
+  <button onclick="showWrong()">查看錯誤明細</button><br><br>
+  <button onclick="restart()">重新測驗</button>
  </div>
 </div>
 
-<!-- 成績彈窗 -->
-<div id="modal" class="modal hidden">
+<div class="modal" id="wrongPage" style="display:none">
  <div class="card">
-  <div class="score" id="scoreText"></div>
-  <div class="avg" id="avgText"></div>
-
-  <button class="small-btn" onclick="toggleDetail()">查看錯誤明細</button>
-
-  <div class="detail hidden" id="detailList"></div>
-
-  <button class="small-btn" onclick="restart()">重新測驗</button>
+  <h2>錯誤明細</h2>
+  <div id="wrongList"></div>
+  <br>
+  <button onclick="backToResult()">返回成績</button>
  </div>
 </div>
 
 <script>
-let total=30, idx=0, a=0,b=0;
-let timer=8, tId;
-let correct=0;
-let answer="";
-let startTime;
-let correctTimes=[];
-let wrongDetails=[];
+let total=30,idx=0,a,b,correct=0;
+let wrongs=[],times=[],startTime;
 
-function startExam(){
- document.getElementById("start").classList.add("hidden");
- document.getElementById("exam").classList.remove("hidden");
- idx=0; correct=0; correctTimes=[]; wrongDetails=[];
- nextQ();
+function start(){
+ idx=0;correct=0;wrongs=[];times=[];
+ next();
 }
 
-function nextQ(){
- if(idx>=total){ finish(); return; }
+function next(){
+ if(idx>=total){finish();return;}
  idx++;
  a=Math.floor(Math.random()*9)+1;
  b=Math.floor(Math.random()*9)+1;
- answer="";
- timer=8;
  startTime=Date.now();
- updateUI();
- startTimer();
-}
-
-function updateUI(){
- document.getElementById("progress").textContent=`第 ${idx} / ${total} 題`;
- document.getElementById("question").textContent=`${a} × ${b} = ?`;
- document.getElementById("timer").textContent=timer;
- drawKeys();
-}
-
-function startTimer(){
- clearInterval(tId);
- tId=setInterval(()=>{
-  timer--;
-  document.getElementById("timer").textContent=timer;
-  if(timer<=0){
-   wrongDetails.push(`${a}×${b} = ${a*b}`);
-   clearInterval(tId);
-   setTimeout(nextQ,500);
-  }
- },1000);
-}
-
-function drawKeys(){
- const k=document.getElementById("keypad");
- k.innerHTML="";
- for(let i=0;i<=9;i++){
-  const btn=document.createElement("button");
-  btn.textContent=i;
-  btn.onclick=()=>press(i);
-  k.appendChild(btn);
- }
- const del=document.createElement("button");
- del.textContent="⌫";
- del.onclick=()=>{answer=answer.slice(0,-1);}
- k.appendChild(del);
- const ok=document.createElement("button");
- ok.textContent="OK";
- ok.onclick=check;
- k.appendChild(ok);
-}
-
-function press(n){ answer+=n; }
-
-function check(){
- if(answer==="")return;
- clearInterval(tId);
- if(Number(answer)===a*b){
+ const ans=prompt(`${a} × ${b} = ?`);
+ if(ans==a*b){
   correct++;
-  correctTimes.push((Date.now()-startTime)/1000);
+  times.push((Date.now()-startTime)/1000);
  }else{
-  wrongDetails.push(`${a}×${b} = ${a*b}`);
+  wrongs.push(`${a} × ${b} = ${a*b}`);
  }
- setTimeout(nextQ,300);
+ next();
 }
 
 function finish(){
- document.getElementById("exam").classList.add("hidden");
- document.getElementById("modal").classList.remove("hidden");
-
- const avg = correctTimes.length
- ? (correctTimes.reduce((a,b)=>a+b,0)/correctTimes.length).toFixed(1)
- : 0;
-
- document.getElementById("scoreText").textContent=`成績：${correct} / ${total}`;
- document.getElementById("avgText").textContent=`平均作答時間：${avg} 秒`;
-
- const d=document.getElementById("detailList");
- d.innerHTML=wrongDetails.map(x=>`<div class="wrong">${x}</div>`).join("");
+ document.getElementById("result").style.display="flex";
+ document.getElementById("score").textContent=`成績：${correct} / ${total}`;
+ const avg=times.length?(times.reduce((a,b)=>a+b)/times.length).toFixed(1):0;
+ document.getElementById("avg").textContent=`平均作答時間：${avg} 秒`;
 }
 
-function toggleDetail(){
- document.getElementById("detailList").classList.toggle("hidden");
+function showWrong(){
+ document.getElementById("result").style.display="none";
+ document.getElementById("wrongPage").style.display="flex";
+ document.getElementById("wrongList").innerHTML=
+  wrongs.length?wrongs.map(x=>`<div class="wrong">${x}</div>`).join(""):"沒有錯誤 🎉";
 }
 
-function restart(){ location.reload(); }
+function backToResult(){
+ document.getElementById("wrongPage").style.display="none";
+ document.getElementById("result").style.display="flex";
+}
+
+function restart(){location.reload();}
 </script>
 </body>
 </html>
