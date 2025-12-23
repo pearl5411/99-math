@@ -45,15 +45,15 @@ h1{color:#ff7043}
 .keypad{
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  gap:10px;
-  max-width:260px;
+  gap:12px;
+  max-width:280px;
   margin:12px auto;
 }
 .keypad button{
-  font-size:26px;
-  padding:14px;
+  font-size:30px;
+  padding:18px;
   border:none;
-  border-radius:16px;
+  border-radius:18px;
   background:#ffab91;
 }
 
@@ -112,26 +112,27 @@ h1{color:#ff7043}
   margin-bottom:6px;
 }
 
-/* 😭 哭臉動畫 */
-#cryFace{
+/* 😭 哭臉在答案框左右 */
+.crySide{
   position:fixed;
-  left:50%;
-  top:40%;
-  transform:translate(-50%,-50%);
-  font-size:80px;
+  top:50%;
+  font-size:60px;
   opacity:0;
   pointer-events:none;
   z-index:9999;
 }
-@keyframes cryAnim{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
-  20%{opacity:1;transform:translate(-50%,-50%) scale(1.1) rotate(-10deg)}
-  60%{transform:translate(-50%,-50%) rotate(10deg)}
-  100%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
-}
-.showCry{animation:cryAnim 1.2s}
+.crySide.left{ left:calc(50% - 150px); }
+.crySide.right{ left:calc(50% + 90px); }
 
-/* ⭐ 星星爆開 */
+@keyframes crySideAnim{
+  0%{opacity:0;transform:translateY(-50%) scale(.5);}
+  20%{opacity:1;transform:translateY(-50%) scale(1.1) rotate(-10deg);}
+  60%{transform:translateY(-50%) rotate(10deg);}
+  100%{opacity:0;transform:translateY(-50%) scale(.6);}
+}
+.showCrySide{animation:crySideAnim 1.2s}
+
+/* ⭐ 成績星星爆開 */
 #starBurst{
   position:fixed;
   left:50%;
@@ -164,7 +165,6 @@ h1{color:#ff7043}
 </div>
 
 <div class="card" id="quizCard" style="display:none">
-  <div id="progress"></div>
   <div id="question"></div>
   <div id="timer"></div>
   <div id="answerBox"></div>
@@ -176,7 +176,8 @@ h1{color:#ff7043}
   <div class="resultCard" id="resultCard"></div>
 </div>
 
-<div id="cryFace">😭</div>
+<div class="crySide left">😭</div>
+<div class="crySide right">😭</div>
 <div id="starBurst"></div>
 
 <script>
@@ -206,12 +207,19 @@ function speak(t){
   speechSynthesis.speak(u);
 }
 
-/* 星星 */
+/* 動畫 */
+function showCry(){
+  document.querySelectorAll(".crySide").forEach(c=>{
+    c.classList.remove("showCrySide");
+    void c.offsetWidth;
+    c.classList.add("showCrySide");
+  });
+}
 function showStars(){
   const box=document.getElementById("starBurst");
   box.innerHTML="";
-  ["⭐","✨","🌟"].forEach((ch,i)=>{
-    for(let j=0;j<5;j++){
+  ["⭐","✨","🌟"].forEach(ch=>{
+    for(let i=0;i<5;i++){
       const s=document.createElement("div");
       s.className="star";
       s.textContent=ch;
@@ -223,17 +231,11 @@ function showStars(){
   setTimeout(()=>box.innerHTML="",1400);
 }
 
-/* 哭臉 */
-function showCry(){
-  const c=document.getElementById("cryFace");
-  c.classList.remove("showCry");
-  void c.offsetWidth;
-  c.classList.add("showCry");
-}
-
 /* 狀態 */
 let list=[],i=0,ans="",sec=8,timer;
 let wrong=[],correct=0;
+let totalCorrectTime=0;
+let qStartTime=0;
 
 /* DOM */
 const startBtn=document.getElementById("startBtn");
@@ -262,7 +264,7 @@ startBtn.onclick=()=>{
     a:1+Math.floor(Math.random()*9),
     b:1+Math.floor(Math.random()*9)
   }));
-  i=0;correct=0;wrong=[];
+  i=0;correct=0;wrong=[];totalCorrectTime=0;
   startCard.style.display="none";
   quizCard.style.display="block";
   next();
@@ -275,6 +277,7 @@ function next(){
   const q=list[i];
   qEl.textContent=`${q.a} × ${q.b} = ?`;
   sec=8;tEl.textContent=`⏱ ${sec}`;
+  qStartTime=Date.now();
   timer=setInterval(()=>{
     sec--;beep(700);
     tEl.textContent=`⏱ ${sec}`;
@@ -298,7 +301,10 @@ function mark(ok){
   clearInterval(timer);
   const q=list[i],c=q.a*q.b;
   if(ok){
-    correct++;ding();i++;setTimeout(next,300);
+    correct++;
+    totalCorrectTime+=(Date.now()-qStartTime)/1000;
+    ding();
+    i++;setTimeout(next,300);
   }else{
     showCry();
     wrong.push(`${q.a} × ${q.b} = ${c}（你的答案：${ans||"未輸入"}）`);
@@ -316,6 +322,9 @@ function finish(){
     <div class="resultHeader">📘 成績單</div>
     <div class="scoreRow"><span>答對</span><span>${correct}</span></div>
     <div class="scoreRow"><span>答錯</span><span>${wrong.length}</span></div>
+    <div class="scoreRow"><span>⏱ 平均時間</span>
+      <span>${correct?(totalCorrectTime/correct).toFixed(1)+" 秒":"-"}</span>
+    </div>
     <button class="resultBtn retry" onclick="retry()">錯題重練</button>
     <button class="resultBtn restart" onclick="location.reload()">重新測驗</button>
     <button class="resultBtn" onclick="toggle()">查看錯誤明細</button>
@@ -333,7 +342,7 @@ function retry(){
     const m=w.match(/(\d+)\s×\s(\d+)/);
     return {a:+m[1],b:+m[2]};
   });
-  i=0;wrong=[];correct=0;
+  i=0;wrong=[];correct=0;totalCorrectTime=0;
   overlay.style.display="none";
   quizCard.style.display="block";
   next();
