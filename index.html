@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>99乘法考試</title>
+<title>99乘法測驗</title>
 
 <style>
 body{
  margin:0;
- font-family:"Arial Rounded MT Bold",system-ui;
- background:linear-gradient(135deg,#fff0f6,#e0f7ff);
+ font-family:system-ui;
+ background:#f4f6f8;
  text-align:center;
 }
 .container{
@@ -17,10 +17,13 @@ body{
  margin:auto;
  padding:20px;
 }
-h1{color:#ff6fae;}
+.hidden{display:none;}
+
+h1{margin-bottom:10px;}
 .question{font-size:36px;margin:20px 0;}
-.timer{font-size:28px;color:#ff5252;}
+.timer{font-size:28px;color:#d32f2f;}
 .progress{font-size:18px;margin:10px;}
+
 .keypad{
  display:grid;
  grid-template-columns:repeat(3,1fr);
@@ -31,100 +34,294 @@ button{
  font-size:22px;
  padding:16px;
  border:none;
- border-radius:14px;
+ border-radius:12px;
  background:#fff;
  box-shadow:0 4px 8px rgba(0,0,0,.15);
 }
 button:active{transform:scale(.95);}
-.start-btn{background:#ff8fc7;color:#fff;font-size:26px;}
+.start-btn{
+ background:#1976d2;
+ color:#fff;
+ font-size:26px;
+}
 
-.modal{
- position:fixed;
- inset:0;
- background:rgba(0,0,0,.4);
- display:flex;
- align-items:center;
- justify-content:center;
-}
-.card{
+/* 成績單 */
+.score-sheet{
  background:#fff;
- border-radius:20px;
+ border:2px solid #ccc;
+ border-radius:12px;
  padding:20px;
- width:90%;
- max-width:400px;
+ margin-top:20px;
 }
-.score{font-size:30px;color:#ff6fae;}
-.avg{font-size:20px;margin:10px 0;}
-.wrong{color:red;font-size:20px;margin:6px 0;}
+.sheet-title{
+ font-size:22px;
+ font-weight:bold;
+ letter-spacing:4px;
+ margin-bottom:15px;
+}
+.sheet-row{
+ display:flex;
+ justify-content:space-between;
+ font-size:18px;
+ padding:6px 0;
+ border-bottom:1px dashed #ccc;
+}
+.highlight{
+ font-weight:bold;
+ color:#d32f2f;
+ border-bottom:none;
+}
+.detail-btn{
+ margin:10px 0;
+ padding:8px;
+ font-size:16px;
+}
+.detailBox{
+ max-height:0;
+ overflow:hidden;
+ transition:max-height .4s ease;
+}
+.detailBox.open{max-height:240px;}
+.detailBox div{
+ color:#c62828;
+ font-size:17px;
+ padding:4px 0;
+}
+.action-btn{
+ margin-top:12px;
+ font-size:18px;
+ padding:10px;
+ background:#1976d2;
+ color:#fff;
+}
 </style>
 </head>
 
 <body>
-<div class="container" id="main">
- <h1>99乘法考試</h1>
- <button class="start-btn" onclick="start()">開始測驗</button>
+<div class="container">
+
+<h1>99 乘法測驗</h1>
+
+<div id="start">
+ <button class="start-btn" onclick="startExam()">開始測驗</button>
 </div>
 
-<div class="modal" id="result" style="display:none">
- <div class="card">
-  <div class="score" id="score"></div>
-  <div class="avg" id="avg"></div>
-  <button onclick="showWrong()">查看錯誤明細</button><br><br>
-  <button onclick="restart()">重新測驗</button>
+<div id="exam" class="hidden">
+ <div class="progress" id="progress"></div>
+ <div class="timer" id="timer">8</div>
+ <div class="question" id="question"></div>
+ <div class="keypad" id="keypad"></div>
+</div>
+
+<div id="result" class="hidden">
+ <div class="score-sheet">
+  <div class="sheet-title">99 乘 法 測 驗</div>
+
+  <div class="sheet-row"><span>考試題數</span><span>30 題</span></div>
+  <div class="sheet-row"><span>答對題數</span><span id="correctCount"></span></div>
+  <div class="sheet-row"><span>錯誤題數</span><span id="wrongCount"></span></div>
+  <div class="sheet-row highlight">
+   <span>平均作答時間</span><span id="avgTime"></span>
+  </div>
+
+  <button class="detail-btn" id="detailBtn" onclick="toggleDetail()">
+   查看錯誤明細 ▼
+  </button>
+
+  <div class="detailBox" id="detailBox">
+   <div id="detailList"></div>
+  </div>
+
+  <button id="retryBtn" class="action-btn" onclick="startRetry()" style="display:none">
+   錯題重練
+  </button>
+
+  <button class="action-btn" onclick="restart()">重新測驗</button>
  </div>
 </div>
 
-<div class="modal" id="wrongPage" style="display:none">
- <div class="card">
-  <h2>錯誤明細</h2>
-  <div id="wrongList"></div>
-  <br>
-  <button onclick="backToResult()">返回成績</button>
- </div>
 </div>
 
 <script>
-let total=30,idx=0,a,b,correct=0;
-let wrongs=[],times=[],startTime;
+/* ===== 聲音系統（最穩定寫法） ===== */
+let audioCtx=null;
 
-function start(){
- idx=0;correct=0;wrongs=[];times=[];
- next();
+function unlockAudio(){
+ if(!audioCtx){
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+ }
+ audioCtx.resume().catch(()=>{});
 }
 
-function next(){
+function beep(freq=800,duration=0.07){
+ if(!audioCtx)return;
+ const o=audioCtx.createOscillator();
+ const g=audioCtx.createGain();
+ o.connect(g); g.connect(audioCtx.destination);
+ o.frequency.value=freq;
+ g.gain.value=0.15;
+ o.start();
+ o.stop(audioCtx.currentTime+duration);
+}
+
+function correctSound(){
+ beep(900,0.08);
+ setTimeout(()=>beep(1200,0.08),120);
+}
+
+function wrongSound(){
+ if(!('speechSynthesis' in window))return;
+ const u=new SpeechSynthesisUtterance("答錯了");
+ u.lang="zh-TW";
+ speechSynthesis.cancel();
+ speechSynthesis.speak(u);
+}
+
+/* ===== 考試邏輯 ===== */
+let total=30,idx=0,a,b;
+let timer=8,tId,answer="";
+let correct=0;
+let correctTimes=[];
+let wrongDetails=[],wrongQuestions=[];
+let retryMode=false,retryList=[];
+let startTime=0;
+
+function startExam(){
+ unlockAudio();
+ document.getElementById("start").classList.add("hidden");
+ document.getElementById("exam").classList.remove("hidden");
+ idx=0;correct=0;
+ correctTimes=[];wrongDetails=[];wrongQuestions=[];
+ retryMode=false;
+ nextQ();
+}
+
+function nextQ(){
  if(idx>=total){finish();return;}
  idx++;
- a=Math.floor(Math.random()*9)+1;
- b=Math.floor(Math.random()*9)+1;
- startTime=Date.now();
- const ans=prompt(`${a} × ${b} = ?`);
- if(ans==a*b){
-  correct++;
-  times.push((Date.now()-startTime)/1000);
+ if(retryMode){
+  const q=retryList[idx-1];
+  a=q.a;b=q.b;
  }else{
-  wrongs.push(`${a} × ${b} = ${a*b}`);
+  a=Math.floor(Math.random()*9)+1;
+  b=Math.floor(Math.random()*9)+1;
  }
- next();
+ answer=""; timer=8;
+ startTime=Date.now();
+ updateUI();
+ startTimer();
+}
+
+function updateUI(){
+ document.getElementById("progress").textContent=
+  retryMode?`錯題重練 ${idx}/${total}`:`第 ${idx}/${total} 題`;
+ document.getElementById("question").textContent=`${a} × ${b} = ?`;
+ document.getElementById("timer").textContent=timer;
+ drawKeys();
+}
+
+function startTimer(){
+ clearInterval(tId);
+ tId=setInterval(()=>{
+  timer--;
+  document.getElementById("timer").textContent=timer;
+  beep(700,0.05);          // ⏱️ 每秒滴聲
+  if(timer<=0){
+   recordWrong();
+   wrongSound();
+   clearInterval(tId);
+   setTimeout(nextQ,500);
+  }
+ },1000);
+}
+
+function drawKeys(){
+ const k=document.getElementById("keypad");
+ k.innerHTML="";
+ for(let i=0;i<=9;i++){
+  const btn=document.createElement("button");
+  btn.textContent=i;
+  btn.onclick=()=>answer+=i;
+  k.appendChild(btn);
+ }
+ const del=document.createElement("button");
+ del.textContent="⌫";
+ del.onclick=()=>answer=answer.slice(0,-1);
+ k.appendChild(del);
+ const ok=document.createElement("button");
+ ok.textContent="OK";
+ ok.onclick=check;
+ k.appendChild(ok);
+}
+
+function check(){
+ if(answer==="")return;
+ clearInterval(tId);
+ if(Number(answer)===a*b){
+  correct++;
+  correctTimes.push((Date.now()-startTime)/1000);
+  correctSound();
+ }else{
+  recordWrong();
+  wrongSound();
+ }
+ setTimeout(nextQ,400);
+}
+
+function recordWrong(){
+ wrongDetails.push(`${a} × ${b} = ${a*b}`);
+ if(!retryMode) wrongQuestions.push({a,b});
 }
 
 function finish(){
- document.getElementById("result").style.display="flex";
- document.getElementById("score").textContent=`成績：${correct} / ${total}`;
- const avg=times.length?(times.reduce((a,b)=>a+b)/times.length).toFixed(1):0;
- document.getElementById("avg").textContent=`平均作答時間：${avg} 秒`;
+ document.getElementById("exam").classList.add("hidden");
+ document.getElementById("result").classList.remove("hidden");
+
+ document.getElementById("correctCount").textContent=correct+" 題";
+ document.getElementById("wrongCount").textContent=(total-correct)+" 題";
+
+ const avg=correctTimes.length
+ ?(correctTimes.reduce((x,y)=>x+y)/correctTimes.length).toFixed(1)
+ :0;
+ document.getElementById("avgTime").textContent=avg+" 秒";
+
+ document.getElementById("detailList").innerHTML=
+  wrongDetails.length
+  ?wrongDetails.map(x=>`<div>${x}</div>`).join("")
+  :"沒有錯誤 🎉";
+
+ if(wrongQuestions.length>0 && !retryMode){
+  document.getElementById("retryBtn").style.display="block";
+  document.getElementById("retryBtn").textContent=
+   `錯題重練（${wrongQuestions.length} 題）`;
+ }
 }
 
-function showWrong(){
- document.getElementById("result").style.display="none";
- document.getElementById("wrongPage").style.display="flex";
- document.getElementById("wrongList").innerHTML=
-  wrongs.length?wrongs.map(x=>`<div class="wrong">${x}</div>`).join(""):"沒有錯誤 🎉";
+let detailOpen=false;
+function toggleDetail(){
+ detailOpen=!detailOpen;
+ document.getElementById("detailBox").classList.toggle("open",detailOpen);
+ document.getElementById("detailBtn").textContent=
+  detailOpen?"收起錯誤明細 ▲":"查看錯誤明細 ▼";
 }
 
-function backToResult(){
- document.getElementById("wrongPage").style.display="none";
- document.getElementById("result").style.display="flex";
+function startRetry(){
+ retryMode=true;
+ retryList=[...wrongQuestions];
+ shuffle(retryList);
+ total=retryList.length;
+ idx=0;correct=0;
+ correctTimes=[];wrongDetails=[];
+ document.getElementById("result").classList.add("hidden");
+ document.getElementById("exam").classList.remove("hidden");
+ nextQ();
+}
+
+function shuffle(arr){
+ for(let i=arr.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [arr[i],arr[j]]=[arr[j],arr[i]];
+ }
 }
 
 function restart(){location.reload();}
