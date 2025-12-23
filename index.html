@@ -2,37 +2,39 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
+<meta name="viewport"
+ content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>99乘法考試</title>
 
 <style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{
- font-family: -apple-system, BlinkMacSystemFont, sans-serif;
- background:#f6f7fb;
  margin:0;
+ font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+ background:#f4f6fb;
  text-align:center;
+ touch-action:manipulation;
 }
 .hidden{display:none}
-h1{margin:10px 0}
-#question{
- font-size:32px;
- margin:10px 0;
-}
-.answer{
+
+h1{margin:12px 0}
+
+#question{font-size:34px;margin:10px 0}
+#answer{
  font-size:36px;
  min-height:44px;
- margin:10px 0;
+ margin:6px 0;
 }
-#timer{
- font-size:20px;
- color:#555;
-}
+#timer{font-size:18px;color:#555}
+#progress{margin-top:6px}
+
 #reveal{
  font-size:26px;
- color:red;
- margin-top:8px;
+ color:#d32f2f;
  display:none;
+ margin-top:6px;
 }
+
 .keypad{
  display:grid;
  grid-template-columns:repeat(3,1fr);
@@ -41,36 +43,34 @@ h1{margin:10px 0}
 }
 .keypad button{
  font-size:28px;
- padding:15px;
+ padding:16px;
  border:none;
- border-radius:12px;
+ border-radius:14px;
  background:#fff;
- box-shadow:0 2px 4px rgba(0,0,0,.15);
+ box-shadow:0 2px 4px rgba(0,0,0,.2);
 }
-.keypad button:active{transform:scale(.95)}
+.keypad button:active{transform:scale(.96)}
 .ok{background:#4caf50;color:#fff}
 .del{background:#ff9800;color:#fff}
 
-.score-sheet{
+.score{
  background:#fff;
  margin:15px;
- padding:15px;
- border-radius:16px;
- box-shadow:0 3px 6px rgba(0,0,0,.2);
+ padding:16px;
+ border-radius:18px;
+ box-shadow:0 4px 8px rgba(0,0,0,.2);
  text-align:left;
 }
-.score-sheet h2{text-align:center}
-.score-big{
- font-size:22px;
- margin:8px 0;
-}
-button.restart-btn{
+.score h2{text-align:center}
+.score div{font-size:20px;margin:6px 0}
+
+.btn{
  width:100%;
- margin-top:10px;
  padding:14px;
+ margin-top:10px;
  font-size:20px;
  border:none;
- border-radius:12px;
+ border-radius:14px;
  background:#1976d2;
  color:#fff;
 }
@@ -82,200 +82,199 @@ button.restart-btn{
 <h1>99 乘法考試</h1>
 
 <div id="start">
-<button class="restart-btn" onclick="startExam()">開始測驗</button>
+<button class="btn" onclick="startExam()">開始測驗</button>
 </div>
 
 <div id="exam" class="hidden">
 <div id="progress"></div>
 <div id="question"></div>
-<div id="answer" class="answer">＿</div>
+<div id="answer">＿</div>
 <div id="timer"></div>
 <div id="reveal"></div>
-
 <div class="keypad" id="keys"></div>
 </div>
 
-<div class="score-sheet hidden" id="score">
-<h2>測驗成績單</h2>
-<div class="score-big" id="scoreText"></div>
-<div class="score-big" id="avgTime"></div>
-<div class="score-big" id="wrongCount"></div>
+<div id="score" class="score hidden">
+<h2>測驗成績</h2>
+<div id="scoreText"></div>
+<div id="avgTime"></div>
+<div id="wrongCount"></div>
 <div id="wrongList"></div>
-<button id="retryBtn" class="restart-btn" style="display:none" onclick="startRetry()">錯題重練</button>
-<button class="restart-btn" onclick="restart()">重新測驗</button>
+<button id="retryBtn" class="btn" style="display:none" onclick="startRetry()">錯題重練</button>
+<button class="btn" onclick="location.reload()">重新測驗</button>
 </div>
 
 <script>
-/* ========= 穩定音效核心 ========= */
-let audioCtx;
+/* ===== 音效（最穩定） ===== */
+let audioCtx=null;
 function unlockAudio(){
  if(!audioCtx){
   audioCtx=new (window.AudioContext||window.webkitAudioContext)();
  }
 }
-function beep(freq=800,dur=0.1){
+function beep(freq=700,dur=0.08){
  if(!audioCtx) return;
  const o=audioCtx.createOscillator();
  const g=audioCtx.createGain();
  o.frequency.value=freq;
  o.connect(g); g.connect(audioCtx.destination);
- o.start();
- g.gain.setValueAtTime(0.3,audioCtx.currentTime);
+ g.gain.setValueAtTime(0.25,audioCtx.currentTime);
  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
- o.stop(audioCtx.currentTime+dur);
+ o.start(); o.stop(audioCtx.currentTime+dur);
 }
-function speak(text){
+function speak(txt){
  if(!('speechSynthesis'in window))return;
  speechSynthesis.cancel();
- const u=new SpeechSynthesisUtterance(text);
+ const u=new SpeechSynthesisUtterance(txt);
  u.lang="zh-TW";
  speechSynthesis.speak(u);
 }
 
-/* ========= 遊戲資料 ========= */
-let list=[],wrongQuestions=[],retryList=[];
-let idx=0,total=30,a=0,b=0,answer="";
-let timer=null,sec=8;
-let correct=0,wrongDetails=[],times=[];
-let startTime=0,retryMode=false;
+/* ===== 狀態 ===== */
+let questions=[],wrongQ=[],wrongText=[];
+let idx=0,total=30,a=0,b=0;
+let answer="",sec=8;
+let timerId=null,locked=false;
+let correct=0,times=[];
+let startTime=0,retry=false;
 
-/* ========= 建立鍵盤 ========= */
-function drawKeys(){
+/* ===== 鍵盤 ===== */
+function buildKeys(){
  const k=document.getElementById("keys");
  k.innerHTML="";
  for(let i=1;i<=9;i++) addKey(i);
  addKey(0);
- const del=document.createElement("button");
- del.textContent="⌫"; del.className="del";
- del.onclick=()=>{answer=answer.slice(0,-1);updateAnswer();}
- k.appendChild(del);
-
- const ok=document.createElement("button");
- ok.textContent="OK"; ok.className="ok";
- ok.onclick=submit;
- k.appendChild(ok);
+ addBtn("⌫","del",()=>{
+  if(locked)return;
+  answer=answer.slice(0,-1);
+  updateAnswer();
+ });
+ addBtn("OK","ok",submit);
 }
 function addKey(n){
+ addBtn(n,"",()=>{
+  if(locked)return;
+  answer+=n;
+  updateAnswer();
+ });
+}
+function addBtn(txt,cls,fn){
  const b=document.createElement("button");
- b.textContent=n;
- b.onclick=()=>{answer+=n;updateAnswer();}
+ b.textContent=txt;
+ if(cls)b.className=cls;
+ b.onclick=fn;
  document.getElementById("keys").appendChild(b);
 }
 function updateAnswer(){
  document.getElementById("answer").textContent=answer||"＿";
 }
 
-/* ========= 流程 ========= */
+/* ===== 開始 ===== */
 function startExam(){
  unlockAudio();
- document.getElementById("start").classList.add("hidden");
+ document.getElementById("start").remove(); // ★關鍵
  document.getElementById("exam").classList.remove("hidden");
- list=[];
- for(let i=0;i<total;i++){
-  let x=Math.ceil(Math.random()*9);
-  let y=Math.ceil(Math.random()*9);
-  list.push({a:x,b:y});
- }
- shuffle(list);
- resetVars();
+ generate();
  next();
 }
-function resetVars(){
- idx=0;correct=0;wrongDetails=[];wrongQuestions=[];
- times=[];retryMode=false;
-}
 
+/* ===== 題目 ===== */
+function generate(){
+ questions=[];
+ for(let i=0;i<total;i++){
+  questions.push({
+   a:Math.ceil(Math.random()*9),
+   b:Math.ceil(Math.random()*9)
+  });
+ }
+ shuffle(questions);
+}
 function next(){
- if(idx>=total){finish();return;}
- const q=list[idx];
+ clearTimer();
+ locked=false;
+ document.getElementById("reveal").style.display="none";
+ if(idx>=questions.length){finish();return;}
+ const q=questions[idx];
  a=q.a; b=q.b;
  idx++;
  answer="";
- document.getElementById("reveal").style.display="none";
- updateUI();
+ updateAnswer();
+ document.getElementById("question").textContent=`${a} × ${b} = ?`;
+ document.getElementById("progress").textContent=`第 ${idx} / ${questions.length} 題`;
  startTime=Date.now();
  startTimer();
 }
 
-function updateUI(){
- document.getElementById("progress").textContent=`第 ${idx} / ${total} 題`;
- document.getElementById("question").textContent=`${a} × ${b} = ?`;
- updateAnswer();
-}
-
+/* ===== 計時 ===== */
 function startTimer(){
- clearInterval(timer);
  sec=8;
  document.getElementById("timer").textContent=`剩餘 ${sec} 秒`;
- timer=setInterval(()=>{
+ timerId=setInterval(()=>{
   sec--;
-  beep(600,0.05);
+  beep();
   document.getElementById("timer").textContent=`剩餘 ${sec} 秒`;
   if(sec<=0){
-   clearInterval(timer);
+   clearTimer();
    recordWrong();
   }
  },1000);
 }
+function clearTimer(){
+ if(timerId){clearInterval(timerId);timerId=null;}
+}
 
+/* ===== 作答 ===== */
 function submit(){
- if(answer==="")return;
- clearInterval(timer);
+ if(locked||answer==="")return;
+ locked=true;
+ clearTimer();
  const used=(Date.now()-startTime)/1000;
  if(Number(answer)===a*b){
   correct++;
   times.push(used);
-  beep(1000,0.12); setTimeout(()=>beep(1200,0.12),150);
+  beep(900); setTimeout(()=>beep(1100),120);
   next();
  }else{
   recordWrong();
  }
 }
-
 function recordWrong(){
  speak("答錯了");
- wrongDetails.push(`${a} × ${b} = ${a*b}`);
- wrongQuestions.push({a:a,b:b});
+ wrongQ.push({a,b});
+ wrongText.push(`${a} × ${b} = ${a*b}`);
  document.getElementById("reveal").textContent=`正確答案：${a*b}`;
  document.getElementById("reveal").style.display="block";
  setTimeout(next,3200);
 }
 
+/* ===== 結束 ===== */
 function finish(){
- clearInterval(timer);
+ clearTimer();
  speak("恭喜你完成測驗");
  document.getElementById("exam").classList.add("hidden");
  document.getElementById("score").classList.remove("hidden");
-
- const avg=times.length?(times.reduce((a,b)=>a+b)/times.length).toFixed(1):0;
- document.getElementById("scoreText").textContent=`答對 ${correct} / ${total} 題`;
+ const avg=times.length?(times.reduce((x,y)=>x+y)/times.length).toFixed(1):0;
+ document.getElementById("scoreText").textContent=`答對 ${correct} / ${questions.length} 題`;
  document.getElementById("avgTime").textContent=`平均作答時間：${avg} 秒`;
- document.getElementById("wrongCount").textContent=`錯誤題數：${wrongDetails.length}`;
-
- let wl=document.getElementById("wrongList");
- wl.innerHTML=wrongDetails.map(x=>`<div>${x}</div>`).join("");
-
- if(wrongQuestions.length){
-  const r=document.getElementById("retryBtn");
-  r.style.display="block";
-  r.textContent=`錯題重練（${wrongQuestions.length} 題）`;
+ document.getElementById("wrongCount").textContent=`錯誤題數：${wrongText.length}`;
+ document.getElementById("wrongList").innerHTML=wrongText.map(x=>`<div>${x}</div>`).join("");
+ if(wrongQ.length){
+  document.getElementById("retryBtn").style.display="block";
  }
 }
 
+/* ===== 錯題重練 ===== */
 function startRetry(){
- retryMode=true;
- retryList=[...wrongQuestions];
- shuffle(retryList);
- list=retryList;
- total=list.length;
- resetVars();
+ retry=true;
+ questions=[...wrongQ];
+ wrongQ=[]; wrongText=[];
+ idx=0; correct=0; times=[];
  document.getElementById("score").classList.add("hidden");
  document.getElementById("exam").classList.remove("hidden");
  next();
 }
 
-function restart(){location.reload();}
-
+/* ===== 工具 ===== */
 function shuffle(arr){
  for(let i=arr.length-1;i>0;i--){
   const j=Math.floor(Math.random()*(i+1));
@@ -283,7 +282,7 @@ function shuffle(arr){
  }
 }
 
-drawKeys();
+buildKeys();
 </script>
 </body>
 </html>
